@@ -1,0 +1,25 @@
+specimens:
+  - name: alligator
+    file: skull
+    displayName: Alligator Skull
+  - name: alpaca
+    file: cranium
+    displayName: Alpaca Cranium
+  - name: bear
+    file: skull
+    displayName: Bear Skull
+  - name: beaver
+    file: w21-skull
+    displayName: Beaver Skull
+  - name: cat
+    file: cranium
+    displayName: Cat Cranium
+  - name: caribou
+    file: cranium
+    displayName: Caribou Cranium
+  - name: coyote
+    file: cranium
+    displayName: Coyote Cranium
+  - name: deer
+    file: cranium
+    displayName: Deer Cranium
