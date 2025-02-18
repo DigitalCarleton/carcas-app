@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="scan-item">
                 <div class="preview-frame">
                     <iframe 
-                        src="https://3dviewer.sites.carleton.edu/carcas/html-files/${animal.name}-${animal.file}.html?preview=true" 
+                        src="https://3dviewer.sites.carleton.edu/carcas/html-files/${animal.name}-${animal.file}.html?" 
                         loading="lazy"
                         class="preview-iframe"
                         title="${animal.name.charAt(0).toUpperCase() + animal.name.slice(1)} ${animal.file}"
