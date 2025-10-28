@@ -311,6 +311,7 @@ body::before {
         width: 100%;
         height: auto;
         z-index: 1000;
+        bottom: 0;
     }
 
     .model-viewer-container {
