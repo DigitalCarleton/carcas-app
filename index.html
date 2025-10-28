@@ -21,24 +21,24 @@
                 <h1>CARCAS</h1>
             </div>
             <ul class="nav-menu">
-                <li><a href="#" id="lab-link" class="nav-link"><i class="fas fa-flask"></i><span>The Laboratory</span></a></li>
                 <li class="dropdown">
-                    <a href="#" id="scans-link" class="nav-link">
-                        <i class="fas fa-bone"></i>
-                        <span>3D Collection</span>
+                    <a href="#" id="animal-search-link" class="nav-link">
+                        <i class="fas fa-paw"></i>
+                        <span>Animal-Specific Search</span>
                         <i class="fas fa-chevron-down dropdown-icon"></i>
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="#" class="dropdown-item" data-model="alligator-skull">Alligator</a></li>
-                        <li><a href="#" class="dropdown-item" data-model="alpaca-cranium">Alpaca</a></li>
-                        <li><a href="#" class="dropdown-item" data-model="bear-skull">Bear</a></li>
-                        <li><a href="#" class="dropdown-item" data-model="beaver-w21-skull">Beaver</a></li>
-                        <li><a href="#" class="dropdown-item" data-model="cat-cranium">Cat</a></li>
-                        <li><a href="#" class="dropdown-item" data-model="caribou-cranium">Caribou</a></li>
-                        <li><a href="#" class="dropdown-item" data-model="coyote-cranium">Coyote</a></li>
-                        <li><a href="#" class="dropdown-item" data-model="deer-cranium">Deer</a></li>
-
-                        
+                    <ul class="dropdown-menu" id="animal-dropdown">
+                        <!-- Animals will be populated dynamically from API -->
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="#" id="bone-search-link" class="nav-link">
+                        <i class="fas fa-bone"></i>
+                        <span>Bone-Specific Search</span>
+                        <i class="fas fa-chevron-down dropdown-icon"></i>
+                    </a>
+                    <ul class="dropdown-menu" id="bone-dropdown">
+                        <!-- Bones will be populated dynamically from API -->
                     </ul>
                 </li>
             </ul>

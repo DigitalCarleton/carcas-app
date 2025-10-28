@@ -239,6 +239,13 @@ body::before {
     text-align: center;
 }
 
+.bone-name {
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin: 0.5rem 0;
+    font-style: italic;
+}
+
 .scan-button {
     background: var(--primary);
     color: white;
@@ -437,6 +444,50 @@ body::before {
     transform: translateX(8px);
 }
 
+.dropdown-submenu {
+    position: relative;
+}
+
+.submenu-icon {
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+}
+
+.dropdown-submenu.active .submenu-icon {
+    transform: rotate(90deg);
+}
+
+.submenu {
+    display: none;
+    list-style: none;
+    background: rgba(112, 68, 42, 0.9);
+    border-radius: 4px;
+    padding: 0.3rem;
+    margin-left: 1rem;
+    margin-top: 0.3rem;
+}
+
+.dropdown-submenu.active .submenu {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+.submenu-item {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    padding: 0.4rem 0.8rem;
+    display: block;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    margin: 0.1rem 0;
+}
+
+.submenu-item:hover {
+    background: var(--accent);
+    transform: translateX(5px);
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -513,4 +564,5 @@ body::before {
     color: var(--text);
     opacity: 0.8;
 }
+
 

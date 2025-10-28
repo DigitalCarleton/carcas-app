@@ -1,5 +1,111 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const contentArea = document.getElementById("content-area");
+    
+    // Global variables for specimen data
+    let allSpecimens = [];
+    let animalGroups = {};
+    let boneGroups = {};
+    
+    // Fetch and process specimen data from API
+    const fetchSpecimenData = async () => {
+        try {
+            const response = await fetch('https://sheetdb.io/api/v1/4ftt7wuign90z');
+            const data = await response.json();
+            
+            // Filter only specimens that are live on website and have valid data
+            allSpecimens = data.filter(specimen => 
+                specimen.Status === "live on website" && 
+                specimen["Common Name"] && 
+                specimen["Link to 3D Viewer"]
+            );
+            
+            // Group by animals
+            animalGroups = {};
+            allSpecimens.forEach(specimen => {
+                const animalName = specimen["Common Name"];
+                if (!animalGroups[animalName]) {
+                    animalGroups[animalName] = [];
+                }
+                animalGroups[animalName].push(specimen);
+            });
+            
+            // Group by bones
+            boneGroups = {};
+            allSpecimens.forEach(specimen => {
+                const boneName = specimen["Bone name"] || "Other";
+                if (!boneGroups[boneName]) {
+                    boneGroups[boneName] = [];
+                }
+                boneGroups[boneName].push(specimen);
+            });
+            
+            console.log('Loaded specimens:', allSpecimens.length);
+            console.log('Animal groups:', Object.keys(animalGroups));
+            console.log('Bone groups:', Object.keys(boneGroups));
+            
+        } catch (error) {
+            console.error('Error fetching specimen data:', error);
+        }
+    };
+    
+
+    // Populate sidebar dropdowns
+    const populateAnimalDropdown = () => {
+        const animalDropdown = document.getElementById('animal-dropdown');
+        animalDropdown.innerHTML = '';
+        
+        Object.keys(animalGroups).sort().forEach(animalName => {
+            const bones = animalGroups[animalName];
+            
+            // Create animal item with sub-dropdown
+            const animalItem = document.createElement('li');
+            animalItem.className = 'dropdown-submenu';
+            animalItem.innerHTML = `
+                <a href="#" class="dropdown-item animal-item" data-animal="${animalName}">
+                    ${animalName}
+                    <i class="fas fa-chevron-right submenu-icon"></i>
+                </a>
+                <ul class="submenu">
+                    ${bones.map(bone => `
+                        <li><a href="#" class="submenu-item" data-model="${bone['Link to 3D Viewer']}">${bone['Bone name'] || 'Bone'}</a></li>
+                    `).join('')}
+                </ul>
+            `;
+            animalDropdown.appendChild(animalItem);
+        });
+    };
+    
+    const populateBoneDropdown = () => {
+        const boneDropdown = document.getElementById('bone-dropdown');
+        boneDropdown.innerHTML = '';
+        
+        Object.keys(boneGroups).sort().forEach(boneName => {
+            if (boneName === "Other" || boneName === "") return; // Skip empty bone names
+            
+            const specimens = boneGroups[boneName];
+            
+            // Create bone item with sub-dropdown
+            const boneItem = document.createElement('li');
+            boneItem.className = 'dropdown-submenu';
+            boneItem.innerHTML = `
+                <a href="#" class="dropdown-item bone-item" data-bone="${boneName}">
+                    ${boneName}
+                    <i class="fas fa-chevron-right submenu-icon"></i>
+                </a>
+                <ul class="submenu">
+                    ${specimens.map(specimen => `
+                        <li><a href="#" class="submenu-item" data-model="${specimen['Link to 3D Viewer']}">${specimen['Common Name']}</a></li>
+                    `).join('')}
+                </ul>
+            `;
+            boneDropdown.appendChild(boneItem);
+        });
+    };
+
+    // Initialize data and populate dropdowns
+    await fetchSpecimenData();
+    populateAnimalDropdown();
+    populateBoneDropdown();
     
     // Home page content
     const loadHomePage = () => {
@@ -56,22 +162,51 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
         }
 
-        return filteredSpecimens.map(animal => `
-            <div class="scan-item">
-                <div class="preview-frame">
-                    <iframe 
-                        src="https://3dviewer.sites.carleton.edu/carcas/html-files/${animal.name}-${animal.file}.html?" 
-                        loading="lazy"
-                        class="preview-iframe"
-                        title="${animal.name.charAt(0).toUpperCase() + animal.name.slice(1)} ${animal.file}"
-                    ></iframe>
-                </div>
-                <div class="scan-info">
-                    <h4>${animal.name.charAt(0).toUpperCase() + animal.name.slice(1)}</h4>
-                    <button class="scan-button" data-model="${animal.name}-${animal.file}.html">View Model</button>
-                </div>
-            </div>
-        `).join('');
+        return filteredSpecimens.map(specimen => {
+            // Handle both old format (hardcoded) and new format (API data)
+            if (specimen.name && specimen.file) {
+                // Old format
+                return `
+                    <div class="scan-item">
+                        <div class="preview-frame">
+                            <iframe 
+                                src="https://3dviewer.sites.carleton.edu/carcas/html-files/${specimen.name}-${specimen.file}.html?" 
+                                loading="lazy"
+                                class="preview-iframe"
+                                title="${specimen.name.charAt(0).toUpperCase() + specimen.name.slice(1)} ${specimen.file}"
+                            ></iframe>
+                        </div>
+                        <div class="scan-info">
+                            <h4>${specimen.name.charAt(0).toUpperCase() + specimen.name.slice(1)}</h4>
+                            <button class="scan-button" data-model="${specimen.name}-${specimen.file}.html">View Model</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // New format from API
+                const modelId = specimen['Link to 3D Viewer'];
+                const animalName = specimen['Common Name'] || 'Unknown';
+                const boneName = specimen['Bone name'] || '';
+                
+                return `
+                    <div class="scan-item">
+                        <div class="preview-frame">
+                            <iframe 
+                                src="https://3dviewer.sites.carleton.edu/carcas/html-files/${modelId}.html?" 
+                                loading="lazy"
+                                class="preview-iframe"
+                                title="${animalName} ${boneName}"
+                            ></iframe>
+                        </div>
+                        <div class="scan-info">
+                            <h4>${animalName}</h4>
+                            <p class="bone-name">${boneName}</p>
+                            <button class="scan-button" data-model="${modelId}">View Model</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
     };
 
     const setupSearch = () => {
@@ -80,9 +215,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const performSearch = (searchTerm) => {
             const normalizedTerm = searchTerm.toLowerCase().trim();
-            const filteredSpecimens = specimens.filter(specimen => 
-                specimen.name.toLowerCase().includes(normalizedTerm)
-            );
+            const filteredSpecimens = allSpecimens.filter(specimen => {
+                const animalName = specimen['Common Name'] ? specimen['Common Name'].toLowerCase() : '';
+                const boneName = specimen['Bone name'] ? specimen['Bone name'].toLowerCase() : '';
+                return animalName.includes(normalizedTerm) || boneName.includes(normalizedTerm);
+            });
             specimensGrid.innerHTML = renderSpecimens(filteredSpecimens);
         };
 
@@ -104,17 +241,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // Load Model Viewer
-    const loadModelViewer = (model) => {
-        const modelName = model.replace('.html', '').split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
+    const loadModelViewer = (modelId) => {
+        // Remove .html extension if it exists
+        const cleanModelId = modelId.replace('.html', '');
+        
+        // Find the specimen data to get proper name and details
+        const specimen = allSpecimens.find(s => s['Link to 3D Viewer'] === cleanModelId);
+        
+        let modelName = cleanModelId;
+        if (specimen) {
+            modelName = `${specimen['Common Name']} ${specimen['Bone name'] || ''}`.trim();
+        } else {
+            // Fallback to formatting the model ID
+            modelName = cleanModelId.split('-')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
 
         loadContent(`
             <div class="scan-viewer-section">
                 <h1 class="model-title">${modelName}</h1>
                 <div class="model-viewer-container">
-                    <button class="back-button" onclick="loadSpecimensGrid()">← Back to Collection</button>
-                    <iframe src="https://3dviewer.sites.carleton.edu/carcas/html-files/${model}" 
+                    <button class="back-button" onclick="window.history.back()">← Back</button>
+                    <iframe src="https://3dviewer.sites.carleton.edu/carcas/html-files/${cleanModelId}.html" 
                             style="border:0; width:100%; height:100%;" 
                             name="model-viewer" 
                             scrolling="no" 
@@ -126,8 +275,45 @@ document.addEventListener("DOMContentLoaded", () => {
         `);
     };
 
+    // Load Animal Search Page
+    const loadAnimalSearchPage = () => {
+        loadContent(`
+            <div class="scans-section">
+                <h2>Animal-Specific Search</h2>
+                <p class="collection-description">Search through our animal specimens:</p>
+                <div class="search-container">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="specimen-search" placeholder="Search specimens..." class="search-input">
+                    </div>
+                </div>
+                <div class="grid" id="specimens-grid">
+                    ${renderSpecimens(allSpecimens)}
+                </div>
+            </div>
+        `);
+    };
+
+    // Load Bone Search Page  
+    const loadBoneSearchPage = () => {
+        loadContent(`
+            <div class="scans-section">
+                <h2>Bone-Specific Search</h2>
+                <p class="collection-description">Search through our bone specimens:</p>
+                <div class="search-container">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="specimen-search" placeholder="Search specimens..." class="search-input">
+                    </div>
+                </div>
+                <div class="grid" id="specimens-grid">
+                    ${renderSpecimens(allSpecimens)}
+                </div>
+            </div>
+        `);
+    };
+
     // Load Specimens Grid
-    // Add this to your loadSpecimensGrid function, replacing the existing version
     const loadSpecimensGrid = () => {
         loadContent(`
             <div class="scans-section">
@@ -152,109 +338,84 @@ document.addEventListener("DOMContentLoaded", () => {
         loadHomePage();
     });
 
-    // Lab Link Handler
-    document.getElementById("lab-link").addEventListener("click", (e) => {
+
+    // Animal Search Dropdown Handler
+    const animalSearchLink = document.getElementById("animal-search-link");
+    const animalDropdown = animalSearchLink.parentElement;
+    
+    animalSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
-        loadContent(`
-            <div class="lab-section">
-                <h2>Laboratory Facilities</h2>
-                <p class="lab-description">Our laboratory resources form the foundation of CARCAS's research capabilities</p>
-                <div class="resources-container">
-                    <div class="resource-list">
-                        <div class="resource-item">
-                            <div class="resource-icon">
-                                <i class="fas fa-bug"></i>
-                            </div>
-                            <div class="resource-content">
-                                <h3>Dermestid Beetle Colony</h3>
-                                <p>Natural skeletal preparation facility</p>
-                            </div>
-                        </div>
-                        <div class="resource-item">
-                            <div class="resource-icon">
-                                <i class="fas fa-bone"></i>
-                            </div>
-                            <div class="resource-content">
-                                <h3>Osteological Collection</h3>
-                                <p>Comprehensive reference materials</p>
-                            </div>
-                        </div>
-                        <div class="resource-item">
-                            <div class="resource-icon">
-                                <i class="fas fa-microscope"></i>
-                            </div>
-                            <div class="resource-content">
-                                <h3>Stereo Microscopes</h3>
-                                <p>High-precision sorting and analysis equipment</p>
-                            </div>
-                        </div>
-                        <div class="resource-item">
-                            <div class="resource-icon">
-                                <i class="fas fa-camera"></i>
-                            </div>
-                            <div class="resource-content">
-                                <h3>Microscope Photography</h3>
-                                <p>Specialized equipment and software for documentation</p>
-                            </div>
-                        </div>
-                        <div class="resource-item">
-                            <div class="resource-icon">
-                                <i class="fas fa-balance-scale"></i>
-                            </div>
-                            <div class="resource-content">
-                                <h3>Precision Balances</h3>
-                                <p>Analytical measurement instruments</p>
-                            </div>
-                        </div>
-                        <div class="resource-item">
-                            <div class="resource-icon">
-                                <i class="fas fa-box"></i>
-                            </div>
-                            <div class="resource-content">
-                                <h3>Storage Facilities</h3>
-                                <p>Controlled environment for specimen preservation</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `);
+        
+        // Check if clicking on the dropdown arrow or span with text
+        if (e.target.classList.contains('dropdown-icon') || e.target.closest('.dropdown-icon')) {
+            animalDropdown.classList.toggle("active");
+        } else if (e.target.tagName === 'SPAN' || e.target.classList.contains('fas')) {
+            // Clicking on the text or paw icon - go to search page
+            loadAnimalSearchPage();
+        } else {
+            // Default - toggle dropdown for safety
+            animalDropdown.classList.toggle("active");
+        }
     });
 
-    // Scans Link and Dropdown Handler
-    const scansLink = document.getElementById("scans-link");
-    const dropdown = scansLink.parentElement;
+    // Bone Search Dropdown Handler
+    const boneSearchLink = document.getElementById("bone-search-link");
+    const boneDropdown = boneSearchLink.parentElement;
     
-    scansLink.addEventListener("click", (e) => {
+    boneSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
-        dropdown.classList.toggle("active");
-        loadSpecimensGrid();
+        
+        // Check if clicking on the dropdown arrow
+        if (e.target.classList.contains('dropdown-icon') || e.target.closest('.dropdown-icon')) {
+            boneDropdown.classList.toggle("active");
+        } else if (e.target.tagName === 'SPAN' || e.target.classList.contains('fas')) {
+            // Clicking on the text or bone icon - go to search page
+            loadBoneSearchPage();
+        } else {
+            // Default - toggle dropdown for safety
+            boneDropdown.classList.toggle("active");
+        }
     });
 
-    // Handle dropdown item clicks
-    document.querySelectorAll('.dropdown-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const model = e.target.dataset.model + '.html';
-            loadModelViewer(model);
-        });
-    });
-    
-    // Handle grid view model button clicks
+    // Handle dropdown interactions and model clicks
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('scan-button')) {
+        // Handle submenu item clicks (bone/specimen selection)
+        if (e.target.classList.contains('submenu-item')) {
+            e.preventDefault();
+            const model = e.target.dataset.model;
+            if (model) {
+                loadModelViewer(model);
+            }
+        }
+        
+        // Handle animal/bone item clicks (toggle submenu)
+        else if (e.target.classList.contains('animal-item') || e.target.classList.contains('bone-item')) {
+            e.preventDefault();
+            const submenu = e.target.nextElementSibling;
+            const parentLi = e.target.parentElement;
+            
+            // Toggle submenu
+            parentLi.classList.toggle('active');
+        }
+        
+        // Handle grid view model button clicks
+        else if (e.target.classList.contains('scan-button')) {
             e.preventDefault();
             const model = e.target.dataset.model;
             loadModelViewer(model);
         }
-    });
-
-    // Close dropdown only when clicking outside both the dropdown AND the content area
-    document.addEventListener('click', (e) => {
-        if (!dropdown.contains(e.target) && 
-            !e.target.classList.contains('scan-button') && 
-            !e.target.closest('.scan-viewer-section')) {
-            dropdown.classList.remove('active');
+        
+        // Close dropdowns when clicking outside
+        else if (!animalDropdown.contains(e.target) && 
+                 !boneDropdown.contains(e.target) && 
+                 !e.target.classList.contains('scan-button') && 
+                 !e.target.closest('.scan-viewer-section')) {
+            animalDropdown.classList.remove('active');
+            boneDropdown.classList.remove('active');
+            // Close all submenus
+            document.querySelectorAll('.dropdown-submenu.active').forEach(submenu => {
+                submenu.classList.remove('active');
+            });
         }
     });
 
