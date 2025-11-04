@@ -107,23 +107,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     populateAnimalDropdown();
     populateBoneDropdown();
     
-    // Home page content
-    const loadHomePage = () => {
-        loadContent(`
-            <div class="home-content">
-                <header class="home-header">
-                    <img src="carcas.png" alt="CARCAS Logo" class="main-logo">
-                    <h1 class="site-title">Carleton Comparative Archaeological Research Collection</h1>
-                </header>
-                <div class="home-description">
-                    The <strong>Carleton Archaeological Research Collection of Animal Specimens</strong> (CARCAS) is an osteological comparative collection, dermestid beetle colony, and 3D digital repository of animal skeletons located at Carleton College and directed by professor Sarah Kennedy.
-                    <br><br>
-                    Established by Sarah Kennedy in 2021, CARCAS is dedicated to understanding the relationship between humans, animals, and the environment. In our lab, we focus on the curation, analysis, storage, and interpretation of archaeological animal remains. We use dermestid beetles to skeletonize animal carcasses of birds and mammals, and the cleaned skeletons become part of our osteological reference collection. This collection is then used by students and professors as reference material to help identify animal bones found in archaeological excavations around the world.
-                </div>
-                <img src="lab.jpeg" alt="CARCAS Laboratory" class="lab-image">
-            </div>
-        `);
-    };
 
     const loadContent = (html) => {
         contentArea.style.opacity = '0';
@@ -138,19 +121,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         }, 300);
     };
-
-    
-
-    const specimens = [
-        {name: 'alligator', file: 'skull'},
-        {name: 'alpaca', file: 'cranium'},
-        {name: 'bear', file: 'skull'},
-        {name: 'beaver', file: 'w21-skull'},
-        {name: 'cat', file: 'cranium'},
-        {name: 'caribou', file: 'cranium'},
-        {name: 'coyote', file: 'cranium'},
-        {name: 'deer', file: 'cranium'}
-    ];
 
     const renderSpecimens = (filteredSpecimens) => {
         if (filteredSpecimens.length === 0) {
@@ -262,7 +232,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="scan-viewer-section">
                 <h1 class="model-title">${modelName}</h1>
                 <div class="model-viewer-container">
-                    <button class="back-button" onclick="window.history.back()">← Back</button>
+                    <button class="back-button">← Back</button>
                     <iframe src="https://3dviewer.sites.carleton.edu/carcas/html-files/${cleanModelId}.html" 
                             style="border:0; width:100%; height:100%;" 
                             name="model-viewer" 
@@ -275,12 +245,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         `);
     };
 
-    // Load Animal Search Page
-    const loadAnimalSearchPage = () => {
+    // Consolidated Search Page Function
+    const loadSearchPage = (title, description, specimenData = allSpecimens) => {
         loadContent(`
             <div class="scans-section">
-                <h2>Animal-Specific Search</h2>
-                <p class="collection-description">Search through our animal specimens:</p>
+                <h2>${title}</h2>
+                <p class="collection-description">${description}</p>
                 <div class="search-container">
                     <div class="search-wrapper">
                         <i class="fas fa-search search-icon"></i>
@@ -288,56 +258,21 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </div>
                 </div>
                 <div class="grid" id="specimens-grid">
-                    ${renderSpecimens(allSpecimens)}
+                    ${renderSpecimens(specimenData)}
                 </div>
             </div>
         `);
+    };
+
+    // Load Animal Search Page
+    const loadAnimalSearchPage = () => {
+        loadSearchPage("Animal-Specific Search", "Search through our animal specimens:");
     };
 
     // Load Bone Search Page  
     const loadBoneSearchPage = () => {
-        loadContent(`
-            <div class="scans-section">
-                <h2>Bone-Specific Search</h2>
-                <p class="collection-description">Search through our bone specimens:</p>
-                <div class="search-container">
-                    <div class="search-wrapper">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" id="specimen-search" placeholder="Search specimens..." class="search-input">
-                    </div>
-                </div>
-                <div class="grid" id="specimens-grid">
-                    ${renderSpecimens(allSpecimens)}
-                </div>
-            </div>
-        `);
+        loadSearchPage("Bone-Specific Search", "Search through our bone specimens:");
     };
-
-    // Load Specimens Grid
-    const loadSpecimensGrid = () => {
-        loadContent(`
-            <div class="scans-section">
-                <h2>Digital Osteological Collection</h2>
-                <p class="collection-description">Explore our open-access 3D models of comparative specimens:</p>
-                <div class="search-container">
-                    <div class="search-wrapper">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" id="specimen-search" placeholder="Search specimens..." class="search-input">
-                    </div>
-                </div>
-                <div class="grid" id="specimens-grid">
-                    ${renderSpecimens(specimens)}
-                </div>
-            </div>
-        `);
-    };
-
-    // Home Link Handler
-    document.getElementById("home-link").addEventListener("click", (e) => {
-        e.preventDefault();
-        loadHomePage();
-    });
-
 
     // Animal Search Dropdown Handler
     const animalSearchLink = document.getElementById("animal-search-link");
@@ -346,16 +281,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     animalSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
         
-        // Check if clicking on the dropdown arrow or span with text
-        if (e.target.classList.contains('dropdown-icon') || e.target.closest('.dropdown-icon')) {
-            animalDropdown.classList.toggle("active");
-        } else if (e.target.tagName === 'SPAN' || e.target.classList.contains('fas')) {
-            // Clicking on the text or paw icon - go to search page
-            loadAnimalSearchPage();
-        } else {
-            // Default - toggle dropdown for safety
-            animalDropdown.classList.toggle("active");
-        }
+        // Load search page AND toggle dropdown on any click
+        loadAnimalSearchPage();
+        animalDropdown.classList.toggle("active");
     });
 
     // Bone Search Dropdown Handler
@@ -365,16 +293,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     boneSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
         
-        // Check if clicking on the dropdown arrow
-        if (e.target.classList.contains('dropdown-icon') || e.target.closest('.dropdown-icon')) {
-            boneDropdown.classList.toggle("active");
-        } else if (e.target.tagName === 'SPAN' || e.target.classList.contains('fas')) {
-            // Clicking on the text or bone icon - go to search page
-            loadBoneSearchPage();
-        } else {
-            // Default - toggle dropdown for safety
-            boneDropdown.classList.toggle("active");
-        }
+        // Load search page AND toggle dropdown on any click
+        loadBoneSearchPage();
+        boneDropdown.classList.toggle("active");
     });
 
     // Handle dropdown interactions and model clicks
@@ -405,6 +326,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadModelViewer(model);
         }
         
+        // Handle back button clicks
+        else if (e.target.classList.contains('back-button')) {
+            e.preventDefault();
+            loadAnimalSearchPage();
+        }
+        
         // Close dropdowns when clicking outside
         else if (!animalDropdown.contains(e.target) && 
                  !boneDropdown.contains(e.target) && 
@@ -421,7 +348,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Make loadSpecimensGrid available globally
     window.loadSpecimensGrid = loadSpecimensGrid;
-
-    // Load home page initially
-    loadHomePage();
 });
+
+/*
+    // Home page content
+    const loadHomePage = () => {
+        loadContent(`
+            <div class="home-content">
+                <header class="home-header">
+                    <img src="carcas.png" alt="CARCAS Logo" class="main-logo">
+                    <h1 class="site-title">Carleton Comparative Archaeological Research Collection</h1>
+                </header>
+                <div class="home-description">
+                    The <strong>Carleton Archaeological Research Collection of Animal Specimens</strong> (CARCAS) is an osteological comparative collection, dermestid beetle colony, and 3D digital repository of animal skeletons located at Carleton College and directed by professor Sarah Kennedy.
+                    <br><br>
+                    Established by Sarah Kennedy in 2021, CARCAS is dedicated to understanding the relationship between humans, animals, and the environment. In our lab, we focus on the curation, analysis, storage, and interpretation of archaeological animal remains. We use dermestid beetles to skeletonize animal carcasses of birds and mammals, and the cleaned skeletons become part of our osteological reference collection. This collection is then used by students and professors as reference material to help identify animal bones found in archaeological excavations around the world.
+                </div>
+                <img src="lab.jpeg" alt="CARCAS Laboratory" class="lab-image">
+            </div>
+        `);
+    };
+*/
+
+/*
+    // Home Link Handler
+    document.getElementById("home-link").addEventListener("click", (e) => {
+        e.preventDefault();
+        loadHomePage();
+    });
+
+*/

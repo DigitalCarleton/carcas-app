@@ -311,7 +311,6 @@ body::before {
         width: 100%;
         height: auto;
         z-index: 1000;
-        bottom: 0;
     }
 
     .model-viewer-container {
@@ -411,7 +410,7 @@ body::before {
 }
 
 .dropdown.active .dropdown-icon {
-    transform: rotate(180deg);
+    transform: rotate(90deg);
 }
 
 .dropdown-menu {
