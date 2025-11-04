@@ -161,13 +161,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return `
                     <div class="scan-item">
                         <div class="preview-frame">
-                            <iframe 
-                                src="https://3dviewer.sites.carleton.edu/carcas/html-files/${modelId}.html?" 
-                                loading="lazy"
-                                class="preview-iframe"
-                                title="${animalName} ${boneName}"
-                            ></iframe>
-                        </div>
+                            <img src="https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${modelId}-poster.webp?" 
+                                 alt="${animalName} ${boneName}"
+                                 class="preview-iframe"
+                            />
+                            </div>
                         <div class="scan-info">
                             <h4>${animalName}</h4>
                             <p class="bone-name">${boneName}</p>
