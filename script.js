@@ -264,12 +264,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Load Animal Search Page
     const loadAnimalSearchPage = () => {
-        loadSearchPage("Animal-Specific Search", "Search through our animal specimens:");
+        loadSearchPage("Search", "Search through our animal specimens:");
     };
 
     // Load Bone Search Page  
     const loadBoneSearchPage = () => {
-        loadSearchPage("Bone-Specific Search", "Search through our bone specimens:");
+        loadSearchPage("Search", "Search through our bone specimens:");
     };
 
     // Animal Search Dropdown Handler
@@ -334,7 +334,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         else if (!animalDropdown.contains(e.target) && 
                  !boneDropdown.contains(e.target) && 
                  !e.target.classList.contains('scan-button') && 
-                 !e.target.closest('.scan-viewer-section')) {
+                 !e.target.closest('.scan-viewer-section') &&
+                 !e.target.closest('.search-container') &&
+                 !e.target.classList.contains('search-input')) {
             animalDropdown.classList.remove('active');
             boneDropdown.classList.remove('active');
             // Close all submenus
