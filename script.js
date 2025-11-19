@@ -106,7 +106,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await fetchSpecimenData();
     populateAnimalDropdown();
     populateBoneDropdown();
-    
 
     const loadContent = (html) => {
         contentArea.style.opacity = '0';
@@ -262,37 +261,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         `);
     };
 
-    // Load Animal Search Page
-    const loadAnimalSearchPage = () => {
-        loadSearchPage("Search", "Search through our animal specimens:");
-    };
-
-    // Load Bone Search Page  
-    const loadBoneSearchPage = () => {
-        loadSearchPage("Search", "Search through our bone specimens:");
-    };
-
-    // Animal Search Dropdown Handler
+    // Animal Dropdown Handler - Just toggle, don't reload page
     const animalSearchLink = document.getElementById("animal-search-link");
     const animalDropdown = animalSearchLink.parentElement;
     
     animalSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
-        
-        // Load search page AND toggle dropdown on any click
-        loadAnimalSearchPage();
+        // Only toggle dropdown, don't reload page
         animalDropdown.classList.toggle("active");
     });
 
-    // Bone Search Dropdown Handler
+    // Bone Dropdown Handler - Just toggle, don't reload page
     const boneSearchLink = document.getElementById("bone-search-link");
     const boneDropdown = boneSearchLink.parentElement;
     
     boneSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
-        
-        // Load search page AND toggle dropdown on any click
-        loadBoneSearchPage();
+        // Only toggle dropdown, don't reload page
         boneDropdown.classList.toggle("active");
     });
 
@@ -307,7 +292,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         }
         
-        // Handle animal/bone item clicks (toggle submenu)
+        // Handle toggle submenu
         else if (e.target.classList.contains('animal-item') || e.target.classList.contains('bone-item')) {
             e.preventDefault();
             const submenu = e.target.nextElementSibling;
@@ -327,7 +312,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Handle back button clicks
         else if (e.target.classList.contains('back-button')) {
             e.preventDefault();
-            loadAnimalSearchPage();
+            loadSearchPage("Search", "Search through our specimen collection:");
         }
         
         // Close dropdowns when clicking outside
@@ -346,35 +331,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Make loadSpecimensGrid available globally
-    window.loadSpecimensGrid = loadSpecimensGrid;
+    // Load search page by default after everything is set up
+    loadSearchPage("Search", "Search through our specimen collection:");
+    
+    // Make loadSearchPage available globally if needed
+    window.loadSearchPage = loadSearchPage;
 });
-
-/*
-    // Home page content
-    const loadHomePage = () => {
-        loadContent(`
-            <div class="home-content">
-                <header class="home-header">
-                    <img src="carcas.png" alt="CARCAS Logo" class="main-logo">
-                    <h1 class="site-title">Carleton Comparative Archaeological Research Collection</h1>
-                </header>
-                <div class="home-description">
-                    The <strong>Carleton Archaeological Research Collection of Animal Specimens</strong> (CARCAS) is an osteological comparative collection, dermestid beetle colony, and 3D digital repository of animal skeletons located at Carleton College and directed by professor Sarah Kennedy.
-                    <br><br>
-                    Established by Sarah Kennedy in 2021, CARCAS is dedicated to understanding the relationship between humans, animals, and the environment. In our lab, we focus on the curation, analysis, storage, and interpretation of archaeological animal remains. We use dermestid beetles to skeletonize animal carcasses of birds and mammals, and the cleaned skeletons become part of our osteological reference collection. This collection is then used by students and professors as reference material to help identify animal bones found in archaeological excavations around the world.
-                </div>
-                <img src="lab.jpeg" alt="CARCAS Laboratory" class="lab-image">
-            </div>
-        `);
-    };
-*/
-
-/*
-    // Home Link Handler
-    document.getElementById("home-link").addEventListener("click", (e) => {
-        e.preventDefault();
-        loadHomePage();
-    });
-
-*/
