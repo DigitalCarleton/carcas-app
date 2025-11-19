@@ -17,7 +17,7 @@ body {
     font-family: 'Lato', sans-serif;
     color: var(--text);
     background: var(--background);
-    background-image: url('Carleton.png');
+    background-image: url('carleton.png');
     background-repeat: no-repeat;
     background-position: calc(280px + 50% - 140px) center;
     background-size: auto 80vh;
