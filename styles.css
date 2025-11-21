@@ -307,11 +307,31 @@ body::before {
         grid-template-columns: 1fr;
     }
 
+    .main-content {
+        padding: 2rem 1rem;
+    }
+
     .sidebar {
         position: fixed;
         width: 100%;
         height: auto;
         z-index: 1000;
+        bottom: 0;
+        padding: 1rem 2rem .5rem .5rem;
+        overflow: auto;
+        max-height: calc(30vh);        
+    }
+
+    .sidebar-header {
+        margin-bottom: 0;
+    }
+
+    .scans-section {
+        padding: 0;
+    }
+
+    .model-title {
+        font-size: 2rem;
     }
 
     .model-viewer-container {
