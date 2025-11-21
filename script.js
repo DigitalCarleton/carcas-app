@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             // Group by bones
             boneGroups = {};
             allSpecimens.forEach(specimen => {
-                const boneName = specimen["Bone name"] || "Other";
+                const boneName = specimen["Element"] || "Other";
                 if (!boneGroups[boneName]) {
                     boneGroups[boneName] = [];
                 }
@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </a>
                 <ul class="submenu">
                     ${bones.map(bone => `
-                        <li><a href="#" class="submenu-item" data-model="${bone['Link to 3D Viewer']}">${bone['Bone name'] || 'Bone'}</a></li>
+                        <li><a href="#" class="submenu-item" data-model="${bone['Link to 3D Viewer']}">${bone['Element'] || 'Bone'}</a></li>
                     `).join('')}
                 </ul>
             `;
@@ -155,7 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 // New format from API
                 const modelId = specimen['Link to 3D Viewer'];
                 const animalName = specimen['Common Name'] || 'Unknown';
-                const boneName = specimen['Bone name'] || '';
+                const boneName = specimen['Bone Display Name'] || '';
                 
                 return `
                     <div class="scan-item">
@@ -184,7 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const normalizedTerm = searchTerm.toLowerCase().trim();
             const filteredSpecimens = allSpecimens.filter(specimen => {
                 const animalName = specimen['Common Name'] ? specimen['Common Name'].toLowerCase() : '';
-                const boneName = specimen['Bone name'] ? specimen['Bone name'].toLowerCase() : '';
+                const boneName = specimen['Element'] ? specimen['Element'].toLowerCase() : '';
                 return animalName.includes(normalizedTerm) || boneName.includes(normalizedTerm);
             });
             specimensGrid.innerHTML = renderSpecimens(filteredSpecimens);
@@ -217,7 +217,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         let modelName = cleanModelId;
         if (specimen) {
-            modelName = `${specimen['Common Name']} ${specimen['Bone name'] || ''}`.trim();
+            modelName = `${specimen['Common Name']} ${specimen['Bone Display Name'] || ''}`.trim();
         } else {
             // Fallback to formatting the model ID
             modelName = cleanModelId.split('-')
