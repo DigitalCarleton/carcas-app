@@ -1,6 +1,55 @@
+const MODEL_BASE_URL = 'https://3dviewer.sites.carleton.edu/carcas/carcas-models/models/';
+const KNOWN_GLB_FILES = [
+    "Alligator Skull.glb",
+    "Alpaca 3rd Carpal L.glb", "Alpaca 3rd Tarsal (T4).glb", "Alpaca 4th Carpal L.glb",
+    "Alpaca Astragalus L.glb", "Alpaca Atlas.glb", "Alpaca Axis.glb",
+    "Alpaca Calcaneus L.glb", "Alpaca Cervical 3.glb", "Alpaca Cervical 7.glb",
+    "Alpaca Cranium.glb", "Alpaca Cuboid L. (T4).glb", "Alpaca Cuneiform L. (T3).glb",
+    "Alpaca Femur L.glb", "Alpaca Humerus L.glb", "Alpaca Lumbar 1.glb",
+    "Alpaca Lumbar 4.glb", "Alpaca Lumbar 7.glb", "Alpaca Lunar L.glb",
+    "Alpaca Mandible.glb", "Alpaca Metacarpal L.glb", "Alpaca Metatarsal L.glb",
+    "Alpaca Navicular L.glb", "Alpaca Pelvis.glb", "Alpaca Pisiform L.glb",
+    "Alpaca Posterior PHF.glb", "Alpaca Radius_Ulna L.glb", "Alpaca Rib 1 L.glb",
+    "Alpaca Rib 6 L.glb", "Alpaca Rib 12 L.glb", "Alpaca Sacrum.glb",
+    "Alpaca Scapula L.glb", "Alpaca Sternum.glb", "Alpaca Thoracic 1.glb",
+    "Alpaca Thoracic 5.glb", "Alpaca Thoracic 13.glb", "Alpaca Tibia L.glb",
+    "Alpaca Whole Skull.glb",
+    "Bear Skull.glb", "Beaver Skull.glb", "Beaver W21 Skull.glb", "Bowfin Skull.glb",
+    "Caribou Skull.glb", "Coyote Skull.glb", "Deer Skull.glb",
+    "Deer_juv_Cranium.glb", "Deer_juv_Femur.glb", "Deer_juv_Humerus.glb",
+    "Deer_juv_Mandible.glb", "Deer_juv_Metacarpal.glb", "Deer_juv_Metatarsal.glb",
+    "Deer_juv_Pelvis.glb", "Deer_juv_Radius.glb", "Deer_juv_Rib1.glb",
+    "Deer_juv_Scapula.glb", "Deer_juv_Tibia.glb", "Deer_juv_Ulna.glb",
+    "Domestic Dog Skull.glb", "Goat Skull.glb", "Harbor Seal Skull.glb",
+    "Horse Skull.glb", "Horse Skull Patch.glb", "Lizard Skull.glb",
+    "Python Skull.glb", "Salamander Skull.glb", "Sealion Skull.glb",
+    "Sheep Skull.glb", "Snapping Turtle Skull.glb", "Tiger Skull.glb", "Wildcat Skull.glb"
+];
+let glbFileMap = {};
+const buildFileIndex = () => {
+    glbFileMap = {};
+    KNOWN_GLB_FILES.forEach(filename => {
+        const realFileName = filename;
+        const key = realFileName
+            .toLowerCase()
+            .replace(/\.glb$/i, '')
+            .replace(/\s+/g, '-');
+        glbFileMap[key] = realFileName;
+    });
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
     const contentArea = document.getElementById("content-area");
+    buildFileIndex();
     
+    const getGlbFileName = (item) => {
+        const legacyLink = item['Link to 3D Viewer'];
+        if (!legacyLink) return null;
+        const key = legacyLink.toLowerCase().replace(/\.html?$/i, '');
+        if (glbFileMap[key]) return glbFileMap[key];
+        return null;
+    };
+
     // Global variables for specimen data
     let allSpecimens = [];
     let animalGroups = {};
@@ -66,9 +115,22 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <i class="fas fa-chevron-right submenu-icon"></i>
                 </a>
                 <ul class="submenu">
-                    ${bones.map(bone => `
-                        <li><a href="#" class="submenu-item" data-model="${bone['Link to 3D Viewer']}">${bone['Element'] || 'Bone'}</a></li>
-                    `).join('')}
+                    ${bones.map(bone => {
+                        const fileName = getGlbFileName(bone);
+                        const disabledClass = fileName ? '' : 'disabled';
+                        return `
+                            <li>
+                                <a href="#" 
+                                   class="submenu-item ${disabledClass}" 
+                                   data-common="${bone['Common Name'] || animalName}" 
+                                   data-element="${bone['Bone Display Name'] || bone['Element'] || ''}" 
+                                   data-link="${bone['Link to 3D Viewer'] || ''}"
+                                   data-filename="${fileName || ''}">
+                                   ${bone['Element'] || 'Bone'}
+                                </a>
+                            </li>
+                        `;
+                    }).join('')}
                 </ul>
             `;
             animalDropdown.appendChild(animalItem);
@@ -93,9 +155,22 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <i class="fas fa-chevron-right submenu-icon"></i>
                 </a>
                 <ul class="submenu">
-                    ${specimens.map(specimen => `
-                        <li><a href="#" class="submenu-item" data-model="${specimen['Link to 3D Viewer']}">${specimen['Common Name']}</a></li>
-                    `).join('')}
+                    ${specimens.map(specimen => {
+                        const fileName = getGlbFileName(specimen);
+                        const disabledClass = fileName ? '' : 'disabled';
+                        return `
+                            <li>
+                                <a href="#" 
+                                   class="submenu-item ${disabledClass}" 
+                                   data-common="${specimen['Common Name'] || ''}" 
+                                   data-element="${specimen['Bone Display Name'] || specimen['Element'] || ''}" 
+                                   data-link="${specimen['Link to 3D Viewer'] || ''}"
+                                   data-filename="${fileName || ''}">
+                                   ${specimen['Common Name']}
+                                </a>
+                            </li>
+                        `;
+                    }).join('')}
                 </ul>
             `;
             boneDropdown.appendChild(boneItem);
@@ -103,6 +178,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     // Initialize data and populate dropdowns
+    buildFileIndex();
     await fetchSpecimenData();
     populateAnimalDropdown();
     populateBoneDropdown();
@@ -120,6 +196,30 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         }, 300);
     };
+
+    const loadGlbViewerFromSrc = (src) => {
+        const baseUrl = 'https://3dviewer.sites.carleton.edu/carcas/carcas-models/models/';
+        const fileName = decodeURIComponent(src);
+        const modelUrl = baseUrl + encodeURIComponent(fileName);
+        const title = fileName.replace(/\.glb$/i, '');
+        loadContent(`
+            <div class="scan-viewer-section">
+                <h1 class="model-title">${title}</h1>
+                <div class="model-viewer-container">
+                    <button onclick="window.history.back()">Back</button>
+                    <model-viewer
+                        src="${modelUrl}"
+                        alt="${title}"
+                        camera-controls
+                        auto-rotate
+                        shadow-intensity="1"
+                        style="width: 100%; height: 80vh;">
+                    </model-viewer>
+                </div>
+            </div>
+        `);
+    };
+    window.loadGlbViewerFromSrc = loadGlbViewerFromSrc;
 
     const renderSpecimens = (filteredSpecimens) => {
         if (filteredSpecimens.length === 0) {
@@ -147,7 +247,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                         </div>
                         <div class="scan-info">
                             <h4>${specimen.name.charAt(0).toUpperCase() + specimen.name.slice(1)}</h4>
-                            <button class="scan-button" data-model="${specimen.name}-${specimen.file}.html">View Model</button>
+                            <button class="scan-button ${getGlbFileName(specimen) ? '' : 'disabled'}" 
+                                    data-common="${specimen.name.charAt(0).toUpperCase() + specimen.name.slice(1)}" 
+                                    data-element="${specimen.file}" 
+                                    data-link="${specimen['Link to 3D Viewer'] || ''}"
+                                    data-filename="${getGlbFileName(specimen) || ''}">
+                                View Model
+                            </button>
                         </div>
                     </div>
                 `;
@@ -168,7 +274,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <div class="scan-info">
                             <h4>${animalName}</h4>
                             <p class="bone-name">${boneName}</p>
-                            <button class="scan-button" data-model="${modelId}">View Model</button>
+                            <button class="scan-button ${getGlbFileName(specimen) ? '' : 'disabled'}" 
+                                    data-common="${animalName}" 
+                                    data-element="${boneName}" 
+                                    data-link="${modelId}"
+                                    data-filename="${getGlbFileName(specimen) || ''}">
+                                View Model
+                            </button>
                         </div>
                     </div>
                 `;
@@ -286,9 +398,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Handle submenu item clicks (bone/specimen selection)
         if (e.target.classList.contains('submenu-item')) {
             e.preventDefault();
-            const model = e.target.dataset.model;
-            if (model) {
-                loadModelViewer(model);
+            const filename = e.target.dataset.filename;
+            if (filename) {
+                window.location.href = `?src=${encodeURIComponent(filename)}`;
+            } else {
+                console.error("Missing GLB file for this item");
             }
         }
         
@@ -305,8 +419,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Handle grid view model button clicks
         else if (e.target.classList.contains('scan-button')) {
             e.preventDefault();
-            const model = e.target.dataset.model;
-            loadModelViewer(model);
+            const filename = e.target.dataset.filename;
+            if (filename) {
+                window.location.href = `?src=${encodeURIComponent(filename)}`;
+            } else {
+                console.error("Missing GLB file for this item");
+            }
         }
         
         // Handle back button clicks
@@ -331,9 +449,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Load search page by default after everything is set up
-    loadSearchPage("Search", "Search through our specimen collection:");
+    // Check for URL parameters to load a specific model directly
+    const urlParams = new URLSearchParams(window.location.search);
+    const srcParam = urlParams.get('src');
     
-    // Make loadSearchPage available globally if needed
-    window.loadSearchPage = loadSearchPage;
+    if (srcParam) {
+      // If ?src=xxx exists, load the model viewer directly
+      // decodeURIComponent handles spaces/special characters (e.g. "Alligator Skull.glb")
+      loadGlbViewerFromSrc(srcParam);
+    } else {
+      // Otherwise, load the default search page
+      loadSearchPage("Search", "Search through our specimen collection:");
+    }
+    
+    // Keep the global exposure for debugging
+    window.loadGlbViewerFromSrc = loadGlbViewerFromSrc;
 });
