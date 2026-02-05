@@ -1,53 +1,32 @@
 const MODEL_BASE_URL = 'https://3dviewer.sites.carleton.edu/carcas/carcas-models/models/';
-const KNOWN_GLB_FILES = [
-    "Alligator Skull.glb",
-    "Alpaca 3rd Carpal L.glb", "Alpaca 3rd Tarsal (T4).glb", "Alpaca 4th Carpal L.glb",
-    "Alpaca Astragalus L.glb", "Alpaca Atlas.glb", "Alpaca Axis.glb",
-    "Alpaca Calcaneus L.glb", "Alpaca Cervical 3.glb", "Alpaca Cervical 7.glb",
-    "Alpaca Cranium.glb", "Alpaca Cuboid L. (T4).glb", "Alpaca Cuneiform L. (T3).glb",
-    "Alpaca Femur L.glb", "Alpaca Humerus L.glb", "Alpaca Lumbar 1.glb",
-    "Alpaca Lumbar 4.glb", "Alpaca Lumbar 7.glb", "Alpaca Lunar L.glb",
-    "Alpaca Mandible.glb", "Alpaca Metacarpal L.glb", "Alpaca Metatarsal L.glb",
-    "Alpaca Navicular L.glb", "Alpaca Pelvis.glb", "Alpaca Pisiform L.glb",
-    "Alpaca Posterior PHF.glb", "Alpaca Radius_Ulna L.glb", "Alpaca Rib 1 L.glb",
-    "Alpaca Rib 6 L.glb", "Alpaca Rib 12 L.glb", "Alpaca Sacrum.glb",
-    "Alpaca Scapula L.glb", "Alpaca Sternum.glb", "Alpaca Thoracic 1.glb",
-    "Alpaca Thoracic 5.glb", "Alpaca Thoracic 13.glb", "Alpaca Tibia L.glb",
-    "Alpaca Whole Skull.glb",
-    "Bear Skull.glb", "Beaver Skull.glb", "Beaver W21 Skull.glb", "Bowfin Skull.glb",
-    "Caribou Skull.glb", "Coyote Skull.glb", "Deer Skull.glb",
-    "Deer_juv_Cranium.glb", "Deer_juv_Femur.glb", "Deer_juv_Humerus.glb",
-    "Deer_juv_Mandible.glb", "Deer_juv_Metacarpal.glb", "Deer_juv_Metatarsal.glb",
-    "Deer_juv_Pelvis.glb", "Deer_juv_Radius.glb", "Deer_juv_Rib1.glb",
-    "Deer_juv_Scapula.glb", "Deer_juv_Tibia.glb", "Deer_juv_Ulna.glb",
-    "Domestic Dog Skull.glb", "Goat Skull.glb", "Harbor Seal Skull.glb",
-    "Horse Skull.glb", "Horse Skull Patch.glb", "Lizard Skull.glb",
-    "Python Skull.glb", "Salamander Skull.glb", "Sealion Skull.glb",
-    "Sheep Skull.glb", "Snapping Turtle Skull.glb", "Tiger Skull.glb", "Wildcat Skull.glb"
-];
-let glbFileMap = {};
-const buildFileIndex = () => {
-    glbFileMap = {};
-    KNOWN_GLB_FILES.forEach(filename => {
-        const realFileName = filename;
-        const key = realFileName
-            .toLowerCase()
-            .replace(/\.glb$/i, '')
-            .replace(/\s+/g, '-');
-        glbFileMap[key] = realFileName;
-    });
-};
+import { initDimensionLines } from './addDimLines.js';
+
+// KNOWN_GLB_FILES and local index removed in favor of dynamic API data
 
 document.addEventListener("DOMContentLoaded", async () => {
     const contentArea = document.getElementById("content-area");
-    buildFileIndex();
-    
     const getGlbFileName = (item) => {
-        const legacyLink = item['Link to 3D Viewer'];
-        if (!legacyLink) return null;
-        const key = legacyLink.toLowerCase().replace(/\.html?$/i, '');
-        if (glbFileMap[key]) return glbFileMap[key];
-        return null;
+        const link = item['Link to 3D Viewer'];
+        if (!link) return null;
+        
+        // 1. Remove .html extension and trim
+        let fileName = link.trim().replace(/\.html?$/i, '');
+        
+        // 2. Replace hyphens with spaces
+        fileName = fileName.replace(/-/g, ' ');
+        
+        // 3. Title Case: Capitalize first letter of each word
+        // Also capitalize letter immediately after an opening parenthesis
+        fileName = fileName.replace(/(?:^|\s|\()\w/g, (match) => {
+            return match.toUpperCase();
+        });
+        
+        // 4. Ensure .glb suffix
+        if (!fileName.toLowerCase().endsWith('.glb')) {
+            fileName += '.glb';
+        }
+        //this part will be removed after the dynamic API data is fixed
+        return fileName;
     };
 
     // Global variables for specimen data
@@ -91,6 +70,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.log('Loaded specimens:', allSpecimens.length);
             console.log('Animal groups:', Object.keys(animalGroups));
             console.log('Bone groups:', Object.keys(boneGroups));
+            
+            populateAnimalDropdown();
+            populateBoneDropdown();
             
         } catch (error) {
             console.error('Error fetching specimen data:', error);
@@ -178,10 +160,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     // Initialize data and populate dropdowns
-    buildFileIndex();
+    // buildFileIndex() removed
     await fetchSpecimenData();
-    populateAnimalDropdown();
-    populateBoneDropdown();
+    // Dropdowns are populated inside fetchSpecimenData on success
 
     const loadContent = (html) => {
         contentArea.style.opacity = '0';
@@ -218,6 +199,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </div>
             </div>
         `);
+
+        // Initialize dimension lines logic
+        const modelViewer = contentArea.querySelector('model-viewer');
+        if (modelViewer) {
+            initDimensionLines(modelViewer);
+        }
     };
     window.loadGlbViewerFromSrc = loadGlbViewerFromSrc;
 
