@@ -181,34 +181,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     };
 
-    const loadGlbViewerFromSrc = (src) => {
-        const baseUrl = 'https://3dviewer.sites.carleton.edu/carcas/carcas-models/models/';
-        const fileName = decodeURIComponent(src);
-        const modelUrl = baseUrl + encodeURIComponent(fileName);
-        const title = fileName.replace(/\.glb$/i, '');
-        loadContent(`
-            <div class="scan-viewer-section">
-                <h1 class="model-title">${title}</h1>
-                <div class="model-viewer-container">
-                    <button onclick="window.history.back()">Back</button>
-                    <model-viewer
-                        src="${modelUrl}"
-                        alt="${title}"
-                        camera-controls
-                        auto-rotate
-                        shadow-intensity="1"
-                        style="width: 100%; height: 80vh;">
-                    </model-viewer>
-                </div>
-            </div>
-        `);
-
-        // Initialize dimension lines logic
-        const modelViewer = contentArea.querySelector('model-viewer');
-        if (modelViewer) {
-            initDimensionLines(modelViewer);
-        }
-    };
 
     const loadGlbViewerFromSrc = async (src) => {
     const baseUrl = 'https://3dviewer.sites.carleton.edu/carcas/carcas-models/models/';
@@ -219,67 +191,52 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadContent(`
         <div class="scan-viewer-section">
             <h1 class="model-title">${title}</h1>
-            <div class="model-viewer-container">
-                <button onclick="window.history.back()">Back</button>
-                <model-viewer
-                    src="${modelUrl}"
-                    alt="${title}"
-                    camera-controls
-                    ar
-                    interaction-prompt="auto"
-                    auto-rotate
-                    shadow-intensity="1"
-                    style="width: 100%; height: 80vh;">
-                    
-                    <!-- 8 Corners (Dots) -->
-                    <button slot="hotspot-dot+X+Y+Z" class="dot" data-position="1 1 1" data-normal="0 1 0"></button>
-                    <button slot="hotspot-dot+X+Y-Z" class="dot" data-position="1 1 -1" data-normal="0 1 0"></button>
-                    <button slot="hotspot-dot+X-Y+Z" class="dot" data-position="1 -1 1" data-normal="0 -1 0"></button>
-                    <button slot="hotspot-dot+X-Y-Z" class="dot" data-position="1 -1 -1" data-normal="0 -1 0"></button>
-                    <button slot="hotspot-dot-X+Y+Z" class="dot" data-position="-1 1 1" data-normal="0 1 0"></button>
-                    <button slot="hotspot-dot-X+Y-Z" class="dot" data-position="-1 1 -1" data-normal="0 1 0"></button>
-                    <button slot="hotspot-dot-X-Y+Z" class="dot" data-position="-1 -1 1" data-normal="0 -1 0"></button>
-                    <button slot="hotspot-dot-X-Y-Z" class="dot" data-position="-1 -1 -1" data-normal="0 -1 0"></button>
-
-                    <!-- 12 Edges (Dims) -->
-                    <!-- Parallel to X (YZ plane) -->
-                    <button slot="hotspot-dim+Y+Z" class="dim" data-position="0 1 1" data-normal="0 1 0"></button>
-                    <button slot="hotspot-dim+Y-Z" class="dim" data-position="0 1 -1" data-normal="0 1 0"></button>
-                    <button slot="hotspot-dim-Y+Z" class="dim" data-position="0 -1 1" data-normal="0 -1 0"></button>
-                    <button slot="hotspot-dim-Y-Z" class="dim" data-position="0 -1 -1" data-normal="0 -1 0"></button>
-
-                    <!-- Parallel to Y (XZ plane) -->
-                    <button slot="hotspot-dim+X+Z" class="dim" data-position="1 0 1" data-normal="1 0 0"></button>
-                    <button slot="hotspot-dim+X-Z" class="dim" data-position="1 0 -1" data-normal="1 0 0"></button>
-                    <button slot="hotspot-dim-X+Z" class="dim" data-position="-1 0 1" data-normal="-1 0 0"></button>
-                    <button slot="hotspot-dim-X-Z" class="dim" data-position="-1 0 -1" data-normal="-1 0 0"></button>
-
-                    <!-- Parallel to Z (XY plane) -->
-                    <button slot="hotspot-dim+X+Y" class="dim" data-position="1 1 0" data-normal="1 0 0"></button>
-                    <button slot="hotspot-dim+X-Y" class="dim" data-position="1 -1 0" data-normal="1 0 0"></button>
-                    <button slot="hotspot-dim-X+Y" class="dim" data-position="-1 1 0" data-normal="-1 0 0"></button>
-                    <button slot="hotspot-dim-X-Y" class="dim" data-position="-1 -1 0" data-normal="-1 0 0"></button>
-
-                    <svg id="dimLines" style="pointer-events: none;" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" class="dimensionLineContainer">
-                        <line class="dimensionLine"></line> 
-                        <line class="dimensionLine"></line> 
-                        <line class="dimensionLine"></line> 
+            <div class="model-viewer-container" style="position: relative;">
+                    <button onclick="window.history.back()">Back</button>
+                    <model-viewer
+                        src="${modelUrl}"
+                        alt="${title}"
+                        camera-controls
+                        auto-rotate
+                        shadow-intensity="1"
+                        style="width: 100%; height: 80vh;">
+                        <button name="hotspot-dot+X-Y+Z" slot="hotspot-dot+X-Y+Z" class="dot" data-position="1 -1 1" data-normal="1 0 0"></button>
+                        <button name="hotspot-dim+X-Y" slot="hotspot-dim+X-Y" class="dim" data-position="1 -1 0" data-normal="1 0 0"></button>
+                        <button name="hotspot-dot+X-Y-Z" slot="hotspot-dot+X-Y-Z" class="dot" data-position="1 -1 -1" data-normal="1 0 0"></button>
+                        <button name="hotspot-dim+X-Z" slot="hotspot-dim+X-Z" class="dim" data-position="1 0 -1" data-normal="1 0 0"></button>
+                        <button name="hotspot-dot+X+Y-Z" slot="hotspot-dot+X+Y-Z" class="dot" data-position="1 1 -1" data-normal="0 1 0"></button>
+                        <button name="hotspot-dim+Y-Z" slot="hotspot-dim+Y-Z" class="dim" data-position="0 1 -1" data-normal="0 1 0"></button>
+                        <button name="hotspot-dim-Y+Z" slot="hotspot-dim-Y+Z" class="dim" data-position="0 -1 1" data-normal="0 -1 0"></button>
+                        <button name="hotspot-dot-X+Y-Z" slot="hotspot-dot-X+Y-Z" class="dot" data-position="-1 1 -1" data-normal="0 1 0"></button>
+                        <button name="hotspot-dim-X-Z" slot="hotspot-dim-X-Z" class="dim" data-position="-1 0 -1" data-normal="-1 0 0"></button>
+                        <button name="hotspot-dot-X-Y-Z" slot="hotspot-dot-X-Y-Z" class="dot" data-position="-1 -1 -1" data-normal="-1 0 0"></button>
+                        <button name="hotspot-dim-X-Y" slot="hotspot-dim-X-Y" class="dim" data-position="-1 -1 0" data-normal="-1 0 0"></button>
+                        <button name="hotspot-dot-X-Y+Z" slot="hotspot-dot-X-Y+Z" class="dot" data-position="-1 -1 1" data-normal="-1 0 0"></button>
+                    </model-viewer>
+                    <svg id="dimLines" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;" class="dimensionLineContainer">
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
                     </svg>
-            
-                    <div id="controlContainer" style="pointer-events: none;">
-                        <div id="controls" class="dim" style="pointer-events: auto;">
-                            <input type="radio" id="cms" name="user-units" value="cms" checked>
-                            <label for="cms">Centimeters</label>
-
-                            <input type="radio" id="inches" name="user-units" value="inches">
-                            <label for="inches">Inches</label><br>
-
-                            <label for="show-dimensions">Show Dimensions:</label>
-                            <input id="show-dimensions" type="checkbox" checked>
-                        </div>
+                    <div id="controlContainer" style="position: absolute; top: 8px; left: 8px; width: 100%; pointer-events: none; z-index: 20; text-align: left;">
+                      <div id="controls" class="dim" style="pointer-events: auto; display: inline-block; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.25);">
+                         <label style="margin-right: 10px; cursor: pointer;"><input type="radio" id="cms" name="user-units" value="cms" checked> Centimeters</label>
+                         <label style="margin-right: 10px; cursor: pointer;"><input type="radio" id="inches" name="user-units" value="inches"> Inches</label>
+                         <div style="margin-top: 5px;">
+                           <label style="cursor: pointer;"><input id="show-dimensions" type="checkbox" checked> Show Dimensions</label>
+                         </div>
+                      </div>
                     </div>
-                </model-viewer>
-            </div>
+                </div>
         </div>
     `);
     

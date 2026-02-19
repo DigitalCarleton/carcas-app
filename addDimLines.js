@@ -1,45 +1,7 @@
 export function initDimensionLines(modelViewer) {
-  // 1. Inject HTML with Inline Styles (Fixes missing elements & blocking issues)
-  const htmlContent = `
-    <svg id="dimLines" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;" class="dimensionLineContainer">
-        <line class="dimensionLine"></line>
-        <line class="dimensionLine"></line>
-        <line class="dimensionLine"></line>
-        <line class="dimensionLine"></line>
-        <line class="dimensionLine"></line>
-        <line class="dimensionLine"></line>
-    </svg>
-    
-    <div id="controlContainer" style="position: absolute; top: 8px; left: 8px; width: 100%; pointer-events: none; z-index: 20; text-align: left;">
-      <div id="controls" class="dim" style="pointer-events: auto; display: inline-block; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.25);">
-         <label style="margin-right: 10px; cursor: pointer;"><input type="radio" id="cms" name="user-units" value="cms" checked> Centimeters</label>
-         <label style="margin-right: 10px; cursor: pointer;"><input type="radio" id="inches" name="user-units" value="inches"> Inches</label>
-         <div style="margin-top: 5px;">
-           <label style="cursor: pointer;"><input id="show-dimensions" type="checkbox" checked> Show Dimensions</label>
-         </div>
-      </div>
-    </div>
-
-    <!-- Hotspots for dimension lines -->
-    <button slot="hotspot-dot+X-Y+Z" class="dot" data-position="1 -1 1" data-normal="1 0 0"></button>
-    <button slot="hotspot-dim+X-Y" class="dim" data-position="1 -1 0" data-normal="1 0 0"></button>
-    <button slot="hotspot-dot+X-Y-Z" class="dot" data-position="1 -1 -1" data-normal="1 0 0"></button>
-    <button slot="hotspot-dim+X-Z" class="dim" data-position="1 0 -1" data-normal="1 0 0"></button>
-    <button slot="hotspot-dot+X+Y-Z" class="dot" data-position="1 1 -1" data-normal="0 1 0"></button>
-    <button slot="hotspot-dim+Y-Z" class="dim" data-position="0 1 -1" data-normal="0 1 0"></button>
-    <button slot="hotspot-dim-Y+Z" class="dim" data-position="0 -1 1" data-normal="0 -1 0"></button>
-    <button slot="hotspot-dot-X+Y-Z" class="dot" data-position="-1 1 -1" data-normal="0 1 0"></button>
-    <button slot="hotspot-dim-X-Z" class="dim" data-position="-1 0 -1" data-normal="-1 0 0"></button>
-    <button slot="hotspot-dot-X-Y-Z" class="dot" data-position="-1 -1 -1" data-normal="-1 0 0"></button>
-    <button slot="hotspot-dim-X-Y" class="dim" data-position="-1 -1 0" data-normal="-1 0 0"></button>
-    <button slot="hotspot-dot-X-Y+Z" class="dot" data-position="-1 -1 1" data-normal="-1 0 0"></button>
-    `;
-
-  modelViewer.insertAdjacentHTML('beforeend', htmlContent);
-
   // 2. Original Logic (Now guaranteed to find elements)
-  const checkbox = modelViewer.querySelector("#show-dimensions");
-  const dimensionLineContainer = modelViewer.querySelector("#dimLines");
+  const checkbox = modelViewer.parentElement.querySelector("#show-dimensions");
+  const dimensionLineContainer = modelViewer.parentElement.querySelector("#dimLines");
 
   function setVisibility(element) {
     if (checkbox.checked) {
@@ -63,60 +25,69 @@ export function initDimensionLines(modelViewer) {
 
   // update svg
   function drawLine(svgLine, dotHotspot1, dotHotspot2, dimensionHotspot) {
-    if (dotHotspot1 && dotHotspot2) {
+    if (!svgLine) return;
+    
+    // check for empty values
+    if (dotHotspot1 && dotHotspot2 && dotHotspot1.canvasPosition && dotHotspot2.canvasPosition) {
       svgLine.setAttribute("x1", dotHotspot1.canvasPosition.x);
       svgLine.setAttribute("y1", dotHotspot1.canvasPosition.y);
       svgLine.setAttribute("x2", dotHotspot2.canvasPosition.x);
       svgLine.setAttribute("y2", dotHotspot2.canvasPosition.y);
+      
+      // force to draw
+      svgLine.style.stroke = "white";
+      svgLine.style.strokeWidth = "2";
+      svgLine.style.display = "block";
 
-      // use provided optional hotspot to tie visibility of this svg line to
       if (dimensionHotspot && !dimensionHotspot.facingCamera) {
         svgLine.classList.add("hide");
       } else {
         svgLine.classList.remove("hide");
       }
+    } else {
+      svgLine.style.display = "none";
     }
   }
 
-  const dimLines = modelViewer.querySelectorAll("line");
+ const dimLines = document.querySelectorAll("#dimLines line");
 
   const renderSVG = () => {
     drawLine(
       dimLines[0],
-      modelViewer.queryHotspot("hotspot-dot+X-Y+Z"),
-      modelViewer.queryHotspot("hotspot-dot+X-Y-Z"),
-      modelViewer.queryHotspot("hotspot-dim+X-Y"),
+      modelViewer.querySelector('button[slot="hotspot-dot+X-Y+Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dot+X-Y-Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dim+X-Y"]'),
     );
     drawLine(
       dimLines[1],
-      modelViewer.queryHotspot("hotspot-dot+X-Y-Z"),
-      modelViewer.queryHotspot("hotspot-dot+X+Y-Z"),
-      modelViewer.queryHotspot("hotspot-dim+X-Z"),
+      modelViewer.querySelector('button[slot="hotspot-dot+X-Y-Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dot+X+Y-Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dim+X-Z"]'),  
     );
     // drawLine(dimLines[2], modelViewer.queryHotspot('hotspot-dot+X+Y-Z'), modelViewer.queryHotspot('hotspot-dot-X+Y-Z')); // always visible
     drawLine(
       dimLines[2],
-      modelViewer.queryHotspot("hotspot-dot+X+Y-Z"),
-      modelViewer.queryHotspot("hotspot-dot-X+Y-Z"),
-      modelViewer.queryHotspot("hotspot-dim+Y-Z"),
+      modelViewer.querySelector('button[slot="hotspot-dot+X+Y-Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dot-X+Y-Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dim+Y-Z"]'),
     );
     drawLine(
       dimLines[3],
-      modelViewer.queryHotspot("hotspot-dot-X-Y+Z"),
-      modelViewer.queryHotspot("hotspot-dot+X-Y+Z"),
-      modelViewer.queryHotspot("hotspot-dim-Y+Z"),
+      modelViewer.querySelector('button[slot="hotspot-dot-X-Y+Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dot+X-Y+Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dim-Y+Z"]'),
     );
     drawLine(
       dimLines[4],
-      modelViewer.queryHotspot("hotspot-dot-X+Y-Z"),
-      modelViewer.queryHotspot("hotspot-dot-X-Y-Z"),
-      modelViewer.queryHotspot("hotspot-dim-X-Z"),
+      modelViewer.querySelector('button[slot="hotspot-dot-X+Y-Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dot-X-Y-Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dim-X-Z"]'),
     );
     drawLine(
       dimLines[5],
-      modelViewer.queryHotspot("hotspot-dot-X-Y-Z"),
-      modelViewer.queryHotspot("hotspot-dot-X-Y+Z"),
-      modelViewer.queryHotspot("hotspot-dim-X-Y"),
+      modelViewer.querySelector('button[slot="hotspot-dot-X-Y-Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dot-X-Y+Z"]'),
+      modelViewer.querySelector('button[slot="hotspot-dim-X-Y"]'),
     );
   };
 
@@ -125,79 +96,53 @@ export function initDimensionLines(modelViewer) {
   // Set the positions of all the hotspots on page load
 
   modelViewer.addEventListener("load", () => {
+    // 1. 使用 3.4.0 推荐的 API 获取尺寸和中心点
     const center = modelViewer.getBoundingBoxCenter();
     const size = modelViewer.getDimensions();
     const x2 = size.x / 2;
     const y2 = size.y / 2;
     const z2 = size.z / 2;
 
-    modelViewer.updateHotspot({
-      name: "hotspot-dot+X-Y+Z",
-      position: `${center.x + x2} ${center.y - y2} ${center.z + z2}`,
+    // 2. 定义所有热点的新位置映射
+    const hotspots = [
+      { name: "hotspot-dot+X-Y+Z", pos: `${center.x + x2} ${center.y - y2} ${center.z + z2}` },
+      { name: "hotspot-dim+X-Y",   pos: `${center.x + x2} ${center.y - y2} ${center.z}` },
+      { name: "hotspot-dot+X-Y-Z", pos: `${center.x + x2} ${center.y - y2} ${center.z - z2}` },
+      { name: "hotspot-dim+X-Z",   pos: `${center.x + x2} ${center.y} ${center.z - z2}` },
+      { name: "hotspot-dot+X+Y-Z", pos: `${center.x + x2} ${center.y + y2} ${center.z - z2}` },
+      { name: "hotspot-dim+Y-Z",   pos: `${center.x} ${center.y + y2} ${center.z - z2}` },
+      { name: "hotspot-dot-X+Y-Z", pos: `${center.x - x2} ${center.y + y2} ${center.z - z2}` },
+      { name: "hotspot-dim-X-Z",   pos: `${center.x - x2} ${center.y} ${center.z - z2}` },
+      { name: "hotspot-dot-X-Y-Z", pos: `${center.x - x2} ${center.y - y2} ${center.z - z2}` },
+      { name: "hotspot-dim-X-Y",   pos: `${center.x - x2} ${center.y - y2} ${center.z}` },
+      { name: "hotspot-dot-X-Y+Z", pos: `${center.x - x2} ${center.y - y2} ${center.z + z2}` },
+      { name: "hotspot-dim-Y+Z",   pos: `${center.x} ${center.y - y2} ${center.z + z2}` }
+    ];
+
+    // 3. 循环更新每一个 Hotspot
+    hotspots.forEach(hs => {
+      const el = modelViewer.querySelector(`button[slot="${hs.name}"]`);
+      if (el) {
+        // 更新数据集中的位置属性
+        el.dataset.position = hs.pos;
+        // 关键：显式调用 API 通知组件更新热点，从而产生投影坐标
+        modelViewer.updateHotspot({
+          name: hs.name,
+          position: hs.pos
+        });
+      }
     });
 
-    modelViewer.updateHotspot({
-      name: "hotspot-dim+X-Y",
-      position: `${center.x + x2} ${center.y - y2} ${center.z}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dot+X-Y-Z",
-      position: `${center.x + x2} ${center.y - y2} ${center.z - z2}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dim+X-Z",
-      position: `${center.x + x2} ${center.y} ${center.z - z2}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dot+X+Y-Z",
-      position: `${center.x + x2} ${center.y + y2} ${center.z - z2}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dim+Y-Z",
-      position: `${center.x} ${center.y + y2} ${center.z - z2}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dot-X+Y-Z",
-      position: `${center.x - x2} ${center.y + y2} ${center.z - z2}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dim-X-Z",
-      position: `${center.x - x2} ${center.y} ${center.z - z2}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dot-X-Y-Z",
-      position: `${center.x - x2} ${center.y - y2} ${center.z - z2}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dim-X-Y",
-      position: `${center.x - x2} ${center.y - y2} ${center.z}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dot-X-Y+Z",
-      position: `${center.x - x2} ${center.y - y2} ${center.z + z2}`,
-    });
-
-    modelViewer.updateHotspot({
-      name: "hotspot-dim-Y+Z",
-      position: `${center.x} ${center.y - y2} ${center.z + z2}`,
-    });
-
-    renderSVG();
-    
-    // Also trigger label update on load
+    // 4. 更新文本标签内容
     drawLabels(size);
     
-    // Show lines
+    // 5. 显示线容器
     dimensionLineContainer.classList.add("loaded");
+
+    // 6. 延迟执行渲染，确保 canvasPosition 已经计算出来
+    setTimeout(() => {
+      renderSVG();
+    }, 100);
   });
 
   // Add the text in appropriate units based off of the radio button
