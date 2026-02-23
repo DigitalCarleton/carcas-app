@@ -1,6 +1,34 @@
+const MODEL_BASE_URL = 'https://3dviewer.sites.carleton.edu/carcas/carcas-models/models/';
+import { initDimensionLines } from './addDimLines.js';
+
+// KNOWN_GLB_FILES and local index removed in favor of dynamic API data
+
 document.addEventListener("DOMContentLoaded", async () => {
     const contentArea = document.getElementById("content-area");
-    
+    const getGlbFileName = (item) => {
+        const link = item['Link to 3D Viewer'];
+        if (!link) return null;
+        
+        // 1. Remove .html extension and trim
+        let fileName = link.trim().replace(/\.html?$/i, '');
+        
+        // 2. Replace hyphens with spaces
+        fileName = fileName.replace(/-/g, ' ');
+        
+        // 3. Title Case: Capitalize first letter of each word
+        // Also capitalize letter immediately after an opening parenthesis
+        fileName = fileName.replace(/(?:^|\s|\()\w/g, (match) => {
+            return match.toUpperCase();
+        });
+        
+        // 4. Ensure .glb suffix
+        if (!fileName.toLowerCase().endsWith('.glb')) {
+            fileName += '.glb';
+        }
+        //this part will be removed after the dynamic API data is fixed
+        return fileName;
+    };
+
     // Global variables for specimen data
     let allSpecimens = [];
     let animalGroups = {};
@@ -43,6 +71,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.log('Animal groups:', Object.keys(animalGroups));
             console.log('Bone groups:', Object.keys(boneGroups));
             
+            populateAnimalDropdown();
+            populateBoneDropdown();
+            
         } catch (error) {
             console.error('Error fetching specimen data:', error);
         }
@@ -66,9 +97,22 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <i class="fas fa-chevron-right submenu-icon"></i>
                 </a>
                 <ul class="submenu">
-                    ${bones.map(bone => `
-                        <li><a href="#" class="submenu-item" data-model="${bone['Link to 3D Viewer']}">${bone['Element'] || 'Bone'}</a></li>
-                    `).join('')}
+                    ${bones.map(bone => {
+                        const fileName = getGlbFileName(bone);
+                        const disabledClass = fileName ? '' : 'disabled';
+                        return `
+                            <li>
+                                <a href="#" 
+                                   class="submenu-item ${disabledClass}" 
+                                   data-common="${bone['Common Name'] || animalName}" 
+                                   data-element="${bone['Bone Display Name'] || bone['Element'] || ''}" 
+                                   data-link="${bone['Link to 3D Viewer'] || ''}"
+                                   data-filename="${fileName || ''}">
+                                   ${bone['Element'] || 'Bone'}
+                                </a>
+                            </li>
+                        `;
+                    }).join('')}
                 </ul>
             `;
             animalDropdown.appendChild(animalItem);
@@ -93,9 +137,22 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <i class="fas fa-chevron-right submenu-icon"></i>
                 </a>
                 <ul class="submenu">
-                    ${specimens.map(specimen => `
-                        <li><a href="#" class="submenu-item" data-model="${specimen['Link to 3D Viewer']}">${specimen['Common Name']}</a></li>
-                    `).join('')}
+                    ${specimens.map(specimen => {
+                        const fileName = getGlbFileName(specimen);
+                        const disabledClass = fileName ? '' : 'disabled';
+                        return `
+                            <li>
+                                <a href="#" 
+                                   class="submenu-item ${disabledClass}" 
+                                   data-common="${specimen['Common Name'] || ''}" 
+                                   data-element="${specimen['Bone Display Name'] || specimen['Element'] || ''}" 
+                                   data-link="${specimen['Link to 3D Viewer'] || ''}"
+                                   data-filename="${fileName || ''}">
+                                   ${specimen['Common Name']}
+                                </a>
+                            </li>
+                        `;
+                    }).join('')}
                 </ul>
             `;
             boneDropdown.appendChild(boneItem);
@@ -103,23 +160,93 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     // Initialize data and populate dropdowns
+    // buildFileIndex() removed
     await fetchSpecimenData();
-    populateAnimalDropdown();
-    populateBoneDropdown();
+    // Dropdowns are populated inside fetchSpecimenData on success
 
     const loadContent = (html) => {
-        contentArea.style.opacity = '0';
-        setTimeout(() => {
-            contentArea.innerHTML = html;
-            contentArea.style.opacity = '1';
-            
-            // If this is the specimens page, set up the search functionality
-            const searchInput = document.getElementById('specimen-search');
-            if (searchInput) {
-                setupSearch();
-            }
-        }, 300);
+        return new Promise((resolve) => {
+            contentArea.style.opacity = '0';
+            setTimeout(() => {
+                contentArea.innerHTML = html;
+                contentArea.style.opacity = '1';
+                
+                // If this is the specimens page, set up the search functionality
+                const searchInput = document.getElementById('specimen-search');
+                if (searchInput) {
+                    setupSearch();
+                }
+                resolve();
+            }, 300);
+        });
     };
+
+
+    const loadGlbViewerFromSrc = async (src) => {
+    const baseUrl = 'https://3dviewer.sites.carleton.edu/carcas/carcas-models/models/';
+    const fileName = decodeURIComponent(src);
+    const modelUrl = baseUrl + encodeURIComponent(fileName);
+    const title = fileName.replace(/\.glb$/i, '');
+    
+    await loadContent(`
+        <div class="scan-viewer-section">
+            <h1 class="model-title">${title}</h1>
+            <div class="model-viewer-container" style="position: relative;">
+                    <button onclick="window.history.back()">Back</button>
+                    <model-viewer
+                        src="${modelUrl}"
+                        alt="${title}"
+                        camera-controls
+                        auto-rotate
+                        shadow-intensity="1"
+                        style="width: 100%; height: 80vh;">
+                        <button name="hotspot-dot+X-Y+Z" slot="hotspot-dot+X-Y+Z" class="dot" data-position="1 -1 1" data-normal="1 0 0"></button>
+                        <button name="hotspot-dim+X-Y" slot="hotspot-dim+X-Y" class="dim" data-position="1 -1 0" data-normal="1 0 0"></button>
+                        <button name="hotspot-dot+X-Y-Z" slot="hotspot-dot+X-Y-Z" class="dot" data-position="1 -1 -1" data-normal="1 0 0"></button>
+                        <button name="hotspot-dim+X-Z" slot="hotspot-dim+X-Z" class="dim" data-position="1 0 -1" data-normal="1 0 0"></button>
+                        <button name="hotspot-dot+X+Y-Z" slot="hotspot-dot+X+Y-Z" class="dot" data-position="1 1 -1" data-normal="0 1 0"></button>
+                        <button name="hotspot-dim+Y-Z" slot="hotspot-dim+Y-Z" class="dim" data-position="0 1 -1" data-normal="0 1 0"></button>
+                        <button name="hotspot-dim-Y+Z" slot="hotspot-dim-Y+Z" class="dim" data-position="0 -1 1" data-normal="0 -1 0"></button>
+                        <button name="hotspot-dot-X+Y-Z" slot="hotspot-dot-X+Y-Z" class="dot" data-position="-1 1 -1" data-normal="0 1 0"></button>
+                        <button name="hotspot-dim-X-Z" slot="hotspot-dim-X-Z" class="dim" data-position="-1 0 -1" data-normal="-1 0 0"></button>
+                        <button name="hotspot-dot-X-Y-Z" slot="hotspot-dot-X-Y-Z" class="dot" data-position="-1 -1 -1" data-normal="-1 0 0"></button>
+                        <button name="hotspot-dim-X-Y" slot="hotspot-dim-X-Y" class="dim" data-position="-1 -1 0" data-normal="-1 0 0"></button>
+                        <button name="hotspot-dot-X-Y+Z" slot="hotspot-dot-X-Y+Z" class="dot" data-position="-1 -1 1" data-normal="-1 0 0"></button>
+                    </model-viewer>
+                    <svg id="dimLines" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;" class="dimensionLineContainer">
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                        <line class="dimensionLine"></line>
+                    </svg>
+                    <div id="controlContainer" style="position: absolute; top: 8px; left: 8px; width: 100%; pointer-events: none; z-index: 20; text-align: left;">
+                      <div id="controls" class="dim" style="pointer-events: auto; display: inline-block; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.25);">
+                         <label style="margin-right: 10px; cursor: pointer;"><input type="radio" id="cms" name="user-units" value="cms" checked> Centimeters</label>
+                         <label style="margin-right: 10px; cursor: pointer;"><input type="radio" id="inches" name="user-units" value="inches"> Inches</label>
+                         <div style="margin-top: 5px;">
+                           <label style="cursor: pointer;"><input id="show-dimensions" type="checkbox" checked> Show Dimensions</label>
+                         </div>
+                      </div>
+                    </div>
+                </div>
+        </div>
+    `);
+    
+    
+    const modelViewer = document.querySelector('model-viewer');
+    
+ 
+    initDimensionLines(modelViewer);
+};
+window.loadGlbViewerFromSrc = loadGlbViewerFromSrc;
 
     const renderSpecimens = (filteredSpecimens) => {
         if (filteredSpecimens.length === 0) {
@@ -132,47 +259,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         return filteredSpecimens.map(specimen => {
-            // Handle both old format (hardcoded) and new format (API data)
-            if (specimen.name && specimen.file) {
-                // Old format
-                return `
-                    <div class="scan-item">
-                        <div class="preview-frame">
-                            <iframe 
-                                src="https://3dviewer.sites.carleton.edu/carcas/html-files/${specimen.name}-${specimen.file}.html?" 
-                                loading="lazy"
+            // New format from API
+            const modelId = specimen['Link to 3D Viewer'];
+            const animalName = specimen['Common Name'] || 'Unknown';
+            const boneName = specimen['Bone Display Name'] || '';
+            const fileName = getGlbFileName(specimen);
+            
+            return `
+                <div class="scan-item">
+                    <div class="preview-frame">
+                        <img src="https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${modelId}-poster.webp?" 
+                                alt="${animalName} ${boneName}"
                                 class="preview-iframe"
-                                title="${specimen.name.charAt(0).toUpperCase() + specimen.name.slice(1)} ${specimen.file}"
-                            ></iframe>
+                                onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'no-preview\'>No Preview</div>'"
+                        />
                         </div>
-                        <div class="scan-info">
-                            <h4>${specimen.name.charAt(0).toUpperCase() + specimen.name.slice(1)}</h4>
-                            <button class="scan-button" data-model="${specimen.name}-${specimen.file}.html">View Model</button>
-                        </div>
+                    <div class="scan-info">
+                        <h4>${animalName}</h4>
+                        <p class="bone-name">${boneName}</p>
+                        <button class="scan-button ${fileName ? '' : 'disabled'}" 
+                                data-common="${animalName}" 
+                                data-element="${boneName}" 
+                                data-link="${modelId}"
+                                data-filename="${fileName || ''}">
+                            View Model
+                        </button>
                     </div>
-                `;
-            } else {
-                // New format from API
-                const modelId = specimen['Link to 3D Viewer'];
-                const animalName = specimen['Common Name'] || 'Unknown';
-                const boneName = specimen['Bone Display Name'] || '';
-                
-                return `
-                    <div class="scan-item">
-                        <div class="preview-frame">
-                            <img src="https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${modelId}-poster.webp?" 
-                                 alt="${animalName} ${boneName}"
-                                 class="preview-iframe"
-                            />
-                            </div>
-                        <div class="scan-info">
-                            <h4>${animalName}</h4>
-                            <p class="bone-name">${boneName}</p>
-                            <button class="scan-button" data-model="${modelId}">View Model</button>
-                        </div>
-                    </div>
-                `;
-            }
+                </div>
+            `;
         }).join('');
     };
 
@@ -286,9 +400,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Handle submenu item clicks (bone/specimen selection)
         if (e.target.classList.contains('submenu-item')) {
             e.preventDefault();
-            const model = e.target.dataset.model;
-            if (model) {
-                loadModelViewer(model);
+            const filename = e.target.dataset.filename;
+            if (filename) {
+                window.location.href = `?src=${encodeURIComponent(filename)}`;
+            } else {
+                console.error("Missing GLB file for this item");
             }
         }
         
@@ -305,8 +421,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Handle grid view model button clicks
         else if (e.target.classList.contains('scan-button')) {
             e.preventDefault();
-            const model = e.target.dataset.model;
-            loadModelViewer(model);
+            const filename = e.target.dataset.filename;
+            if (filename) {
+                window.location.href = `?src=${encodeURIComponent(filename)}`;
+            } else {
+                console.error("Missing GLB file for this item");
+            }
         }
         
         // Handle back button clicks
@@ -331,9 +451,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Load search page by default after everything is set up
-    loadSearchPage("Search", "Search through our specimen collection:");
+    // Check for URL parameters to load a specific model directly
+    const urlParams = new URLSearchParams(window.location.search);
+    const srcParam = urlParams.get('src');
     
-    // Make loadSearchPage available globally if needed
-    window.loadSearchPage = loadSearchPage;
+    if (srcParam) {
+      // If ?src=xxx exists, load the model viewer directly
+      // decodeURIComponent handles spaces/special characters (e.g. "Alligator Skull.glb")
+      loadGlbViewerFromSrc(srcParam);
+    } else {
+      // Otherwise, load the default search page
+      loadSearchPage("Search", "Search through our specimen collection:");
+    }
+    
+    // Keep the global exposure for debugging
+    window.loadGlbViewerFromSrc = loadGlbViewerFromSrc;
 });
