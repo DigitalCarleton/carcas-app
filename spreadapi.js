@@ -6,5 +6,5 @@
     Follow the documentation for Usage and Examples (https://spreadapi.roombelt.com/usage) to replace the sheetdb api with this new one. 
 */
 
-const url = "https://script.google.com/macros/s/AKfycbzwJdfXbbi8Z5zuyXkOYgKgCy3Jey7ZNPmiAW6qyTiuhx16ROdPVUAy3oRHsU1In1dRDw/exec";
+const url = "https://script.google.com/macros/s/AKfycbwUnbEXCjw4HeuTrlK3c108WDyaTPYywD6mD0P9Xut_wPXw4V-CIyC5VDgqOtw7r4vLaA/exec";
 const sheet = "data";
