@@ -229,7 +229,7 @@ body::before {
 .preview-iframe {
     width: 100%;
     height: 100%;
-    object-fit: contain;;
+    object-fit: contain;
     border: none;
     pointer-events: none;
     background: white;
@@ -265,7 +265,7 @@ body::before {
 .scan-viewer-section {
     display: flex;
     flex-direction: column;
-    height: calc(80vh);  
+    height: calc(80vh);
 }
 
 .model-title {
@@ -310,7 +310,7 @@ body::before {
     .main-content {
         padding: 2rem 1rem;
         position: relative;
-        top: calc(20vh);        
+        top: calc(20vh);
     }
 
     .sidebar {
@@ -320,7 +320,7 @@ body::before {
         z-index: 1000;
         padding: 1rem 2rem .5rem .5rem;
         overflow: auto;
-        max-height: calc(30vh);        
+        max-height: calc(30vh);
     }
 
     .sidebar-header {
@@ -489,7 +489,7 @@ body::before {
     margin-top: 0.3rem;
 }
 
-.dropdown-submenu.active .submenu {
+.dropdown-submenu.active>.submenu {
     display: block;
     animation: fadeIn 0.2s ease;
 }
@@ -508,6 +508,27 @@ body::before {
 .submenu-item:hover {
     background: var(--accent);
     transform: translateX(5px);
+}
+
+/* Level 2 Submenu Indentation */
+.dropdown-submenu.level-2 .submenu {
+    margin-left: 1.5rem;
+    background: rgba(90, 54, 33, 0.9);
+}
+
+.nested-item {
+    font-size: 0.85rem !important;
+    padding: 0.4rem 0.8rem !important;
+}
+
+/* Active sidebar filter highlight — only one item should have this at a time */
+.active-filter {
+    color: var(--accent) !important;
+    font-weight: 700 !important;
+    border-left: 3px solid var(--accent);
+    padding-left: calc(0.8rem - 3px) !important;
+    background: rgba(212, 163, 115, 0.15) !important;
+    border-radius: 3px;
 }
 
 @keyframes fadeIn {
@@ -588,19 +609,19 @@ body::before {
 }
 
 
-.dimensionLineContainer, 
+.dimensionLineContainer,
 svg#dimLines {
     pointer-events: none !important;
-    z-index: 100; 
+    z-index: 100;
 }
 
 
 
 .dimensionLine {
-    stroke: #16a5e6 !important;    
-    stroke-width: 1.5px !important;  
+    stroke: #16a5e6 !important;
+    stroke-width: 1.5px !important;
     stroke-dasharray: 5, 5 !important;
-    opacity: 0.8 !important;         
+    opacity: 0.8 !important;
 }
 
 
@@ -610,18 +631,18 @@ svg#dimLines {
     left: 10px !important;
     width: auto !important;
     height: auto !important;
-    z-index: 1000 !important; 
-    pointer-events: auto !important; 
+    z-index: 1000 !important;
+    pointer-events: auto !important;
     opacity: 1 !important;
 }
 
 
 #controls {
     pointer-events: auto !important;
-    background: rgba(255, 255, 255, 0.9); 
+    background: rgba(255, 255, 255, 0.9);
     padding: 10px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     display: block !important;
     opacity: 1 !important;
 }
