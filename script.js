@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const result = await response.json();
             const data = result.data || [];
 
-            console.log('Raw data from SpreadAPI (first row):', data[0]);
+            // console.log('Raw data from SpreadAPI (first row):', data[0]);
 
             // Filter only specimens that are live on website and have valid data
             // Note: In SpreadAPI, column names are exactly as in the header row
@@ -45,9 +45,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 boneGroups[boneName].push(specimen);
             });
 
-            console.log('Loaded specimens:', allSpecimens.length);
-            console.log('Animal groups:', Object.keys(animalGroups));
-            console.log('Bone groups:', Object.keys(boneGroups));
+            // console.log('Loaded specimens:', allSpecimens.length);
+            // console.log('Animal groups:', Object.keys(animalGroups));
+            // console.log('Bone groups:', Object.keys(boneGroups));
 
         } catch (error) {
             console.error('Error fetching specimen data:', error);
