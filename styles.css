@@ -17,7 +17,7 @@ body {
     font-family: 'Lato', sans-serif;
     color: var(--text);
     background: var(--background);
-    background-image: url('Carleton.png');
+    background-image: url('carleton.png');
     background-repeat: no-repeat;
     background-position: calc(280px + 50% - 140px) center;
     background-size: auto 80vh;
@@ -307,11 +307,32 @@ body::before {
         grid-template-columns: 1fr;
     }
 
+    .main-content {
+        padding: 2rem 1rem;
+        position: relative;
+        top: calc(20vh);        
+    }
+
     .sidebar {
         position: fixed;
         width: 100%;
         height: auto;
         z-index: 1000;
+        padding: 1rem 2rem .5rem .5rem;
+        overflow: auto;
+        max-height: calc(30vh);        
+    }
+
+    .sidebar-header {
+        margin-bottom: 0;
+    }
+
+    .scans-section {
+        padding: 0;
+    }
+
+    .model-title {
+        font-size: 2rem;
     }
 
     .model-viewer-container {

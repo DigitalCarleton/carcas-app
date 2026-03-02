@@ -1,24 +1,30 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const contentArea = document.getElementById("content-area");
-    
+
     // Global variables for specimen data
     let allSpecimens = [];
     let animalGroups = {};
     let boneGroups = {};
-    
+
     // Fetch and process specimen data from API
     const fetchSpecimenData = async () => {
         try {
-            const response = await fetch('https://sheetdb.io/api/v1/4ftt7wuign90z');
-            const data = await response.json();
-            
+            // Use URL and Sheet from spreadapi.js
+            const fetchUrl = `${url}?sheet=${sheet}`;
+            const response = await fetch(fetchUrl);
+            const result = await response.json();
+            const data = result.data || [];
+
+            // console.log('Raw data from SpreadAPI (first row):', data[0]);
+
             // Filter only specimens that are live on website and have valid data
-            allSpecimens = data.filter(specimen => 
-                specimen.Status === "live on website" && 
-                specimen["Common Name"] && 
+            // Note: In SpreadAPI, column names are exactly as in the header row
+            allSpecimens = data.filter(specimen =>
+                specimen["Status"] === "live on website" &&
+                specimen["Common Name"] &&
                 specimen["Link to 3D Viewer"]
             );
-            
+
             // Group by animals
             animalGroups = {};
             allSpecimens.forEach(specimen => {
@@ -28,35 +34,35 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 animalGroups[animalName].push(specimen);
             });
-            
+
             // Group by bones
             boneGroups = {};
             allSpecimens.forEach(specimen => {
-                const boneName = specimen["Bone name"] || "Other";
+                const boneName = specimen["Element"] || "Other";
                 if (!boneGroups[boneName]) {
                     boneGroups[boneName] = [];
                 }
                 boneGroups[boneName].push(specimen);
             });
-            
-            console.log('Loaded specimens:', allSpecimens.length);
-            console.log('Animal groups:', Object.keys(animalGroups));
-            console.log('Bone groups:', Object.keys(boneGroups));
-            
+
+            // console.log('Loaded specimens:', allSpecimens.length);
+            // console.log('Animal groups:', Object.keys(animalGroups));
+            // console.log('Bone groups:', Object.keys(boneGroups));
+
         } catch (error) {
             console.error('Error fetching specimen data:', error);
         }
     };
-    
+
 
     // Populate sidebar dropdowns
     const populateAnimalDropdown = () => {
         const animalDropdown = document.getElementById('animal-dropdown');
         animalDropdown.innerHTML = '';
-        
+
         Object.keys(animalGroups).sort().forEach(animalName => {
             const bones = animalGroups[animalName];
-            
+
             // Create animal item with sub-dropdown
             const animalItem = document.createElement('li');
             animalItem.className = 'dropdown-submenu';
@@ -67,23 +73,23 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </a>
                 <ul class="submenu">
                     ${bones.map(bone => `
-                        <li><a href="#" class="submenu-item" data-model="${bone['Link to 3D Viewer']}">${bone['Bone name'] || 'Bone'}</a></li>
+                        <li><a href="#" class="submenu-item" data-model="${bone['Link to 3D Viewer']}">${bone['Element'] || 'Bone'}</a></li>
                     `).join('')}
                 </ul>
             `;
             animalDropdown.appendChild(animalItem);
         });
     };
-    
+
     const populateBoneDropdown = () => {
         const boneDropdown = document.getElementById('bone-dropdown');
         boneDropdown.innerHTML = '';
-        
+
         Object.keys(boneGroups).sort().forEach(boneName => {
             if (boneName === "Other" || boneName === "") return; // Skip empty bone names
-            
+
             const specimens = boneGroups[boneName];
-            
+
             // Create bone item with sub-dropdown
             const boneItem = document.createElement('li');
             boneItem.className = 'dropdown-submenu';
@@ -106,14 +112,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     await fetchSpecimenData();
     populateAnimalDropdown();
     populateBoneDropdown();
-    
 
     const loadContent = (html) => {
         contentArea.style.opacity = '0';
         setTimeout(() => {
             contentArea.innerHTML = html;
             contentArea.style.opacity = '1';
-            
+
             // If this is the specimens page, set up the search functionality
             const searchInput = document.getElementById('specimen-search');
             if (searchInput) {
@@ -156,8 +161,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 // New format from API
                 const modelId = specimen['Link to 3D Viewer'];
                 const animalName = specimen['Common Name'] || 'Unknown';
-                const boneName = specimen['Bone name'] || '';
-                
+                const boneName = specimen['Bone Display Name'] || '';
+
                 return `
                     <div class="scan-item">
                         <div class="preview-frame">
@@ -185,7 +190,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const normalizedTerm = searchTerm.toLowerCase().trim();
             const filteredSpecimens = allSpecimens.filter(specimen => {
                 const animalName = specimen['Common Name'] ? specimen['Common Name'].toLowerCase() : '';
-                const boneName = specimen['Bone name'] ? specimen['Bone name'].toLowerCase() : '';
+                const boneName = specimen['Element'] ? specimen['Element'].toLowerCase() : '';
                 return animalName.includes(normalizedTerm) || boneName.includes(normalizedTerm);
             });
             specimensGrid.innerHTML = renderSpecimens(filteredSpecimens);
@@ -212,13 +217,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const loadModelViewer = (modelId) => {
         // Remove .html extension if it exists
         const cleanModelId = modelId.replace('.html', '');
-        
+
         // Find the specimen data to get proper name and details
         const specimen = allSpecimens.find(s => s['Link to 3D Viewer'] === cleanModelId);
-        
+
         let modelName = cleanModelId;
         if (specimen) {
-            modelName = `${specimen['Common Name']} ${specimen['Bone name'] || ''}`.trim();
+            modelName = `${specimen['Common Name']} ${specimen['Bone Display Name'] || ''}`.trim();
         } else {
             // Fallback to formatting the model ID
             modelName = cleanModelId.split('-')
@@ -262,37 +267,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         `);
     };
 
-    // Load Animal Search Page
-    const loadAnimalSearchPage = () => {
-        loadSearchPage("Search", "Search through our animal specimens:");
-    };
-
-    // Load Bone Search Page  
-    const loadBoneSearchPage = () => {
-        loadSearchPage("Search", "Search through our bone specimens:");
-    };
-
-    // Animal Search Dropdown Handler
+    // Animal Dropdown Handler - Just toggle, don't reload page
     const animalSearchLink = document.getElementById("animal-search-link");
     const animalDropdown = animalSearchLink.parentElement;
-    
+
     animalSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
-        
-        // Load search page AND toggle dropdown on any click
-        loadAnimalSearchPage();
+        // Only toggle dropdown, don't reload page
         animalDropdown.classList.toggle("active");
     });
 
-    // Bone Search Dropdown Handler
+    // Bone Dropdown Handler - Just toggle, don't reload page
     const boneSearchLink = document.getElementById("bone-search-link");
     const boneDropdown = boneSearchLink.parentElement;
-    
+
     boneSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
-        
-        // Load search page AND toggle dropdown on any click
-        loadBoneSearchPage();
+        // Only toggle dropdown, don't reload page
         boneDropdown.classList.toggle("active");
     });
 
@@ -306,37 +297,37 @@ document.addEventListener("DOMContentLoaded", async () => {
                 loadModelViewer(model);
             }
         }
-        
-        // Handle animal/bone item clicks (toggle submenu)
+
+        // Handle toggle submenu
         else if (e.target.classList.contains('animal-item') || e.target.classList.contains('bone-item')) {
             e.preventDefault();
             const submenu = e.target.nextElementSibling;
             const parentLi = e.target.parentElement;
-            
+
             // Toggle submenu
             parentLi.classList.toggle('active');
         }
-        
+
         // Handle grid view model button clicks
         else if (e.target.classList.contains('scan-button')) {
             e.preventDefault();
             const model = e.target.dataset.model;
             loadModelViewer(model);
         }
-        
+
         // Handle back button clicks
         else if (e.target.classList.contains('back-button')) {
             e.preventDefault();
-            loadAnimalSearchPage();
+            loadSearchPage("Search", "Search through our specimen collection:");
         }
-        
+
         // Close dropdowns when clicking outside
-        else if (!animalDropdown.contains(e.target) && 
-                 !boneDropdown.contains(e.target) && 
-                 !e.target.classList.contains('scan-button') && 
-                 !e.target.closest('.scan-viewer-section') &&
-                 !e.target.closest('.search-container') &&
-                 !e.target.classList.contains('search-input')) {
+        else if (!animalDropdown.contains(e.target) &&
+            !boneDropdown.contains(e.target) &&
+            !e.target.classList.contains('scan-button') &&
+            !e.target.closest('.scan-viewer-section') &&
+            !e.target.closest('.search-container') &&
+            !e.target.classList.contains('search-input')) {
             animalDropdown.classList.remove('active');
             boneDropdown.classList.remove('active');
             // Close all submenus
@@ -346,35 +337,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Make loadSpecimensGrid available globally
-    window.loadSpecimensGrid = loadSpecimensGrid;
+    // Load search page by default after everything is set up
+    loadSearchPage("Search", "Search through our specimen collection:");
+
+    // Make loadSearchPage available globally if needed
+    window.loadSearchPage = loadSearchPage;
 });
-
-/*
-    // Home page content
-    const loadHomePage = () => {
-        loadContent(`
-            <div class="home-content">
-                <header class="home-header">
-                    <img src="carcas.png" alt="CARCAS Logo" class="main-logo">
-                    <h1 class="site-title">Carleton Comparative Archaeological Research Collection</h1>
-                </header>
-                <div class="home-description">
-                    The <strong>Carleton Archaeological Research Collection of Animal Specimens</strong> (CARCAS) is an osteological comparative collection, dermestid beetle colony, and 3D digital repository of animal skeletons located at Carleton College and directed by professor Sarah Kennedy.
-                    <br><br>
-                    Established by Sarah Kennedy in 2021, CARCAS is dedicated to understanding the relationship between humans, animals, and the environment. In our lab, we focus on the curation, analysis, storage, and interpretation of archaeological animal remains. We use dermestid beetles to skeletonize animal carcasses of birds and mammals, and the cleaned skeletons become part of our osteological reference collection. This collection is then used by students and professors as reference material to help identify animal bones found in archaeological excavations around the world.
-                </div>
-                <img src="lab.jpeg" alt="CARCAS Laboratory" class="lab-image">
-            </div>
-        `);
-    };
-*/
-
-/*
-    // Home Link Handler
-    document.getElementById("home-link").addEventListener("click", (e) => {
-        e.preventDefault();
-        loadHomePage();
-    });
-
-*/
