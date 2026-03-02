@@ -1,24 +1,30 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const contentArea = document.getElementById("content-area");
-    
+
     // Global variables for specimen data
     let allSpecimens = [];
     let animalGroups = {};
     let boneGroups = {};
-    
+
     // Fetch and process specimen data from API
     const fetchSpecimenData = async () => {
         try {
-            const response = await fetch('https://sheetdb.io/api/v1/4ftt7wuign90z');
-            const data = await response.json();
-            
+            // Use URL and Sheet from spreadapi.js
+            const fetchUrl = `${url}?sheet=${sheet}`;
+            const response = await fetch(fetchUrl);
+            const result = await response.json();
+            const data = result.data || [];
+
+            // console.log('Raw data from SpreadAPI (first row):', data[0]);
+
             // Filter only specimens that are live on website and have valid data
-            allSpecimens = data.filter(specimen => 
-                specimen.Status === "live on website" && 
-                specimen["Common Name"] && 
+            // Note: In SpreadAPI, column names are exactly as in the header row
+            allSpecimens = data.filter(specimen =>
+                specimen["Status"] === "live on website" &&
+                specimen["Common Name"] &&
                 specimen["Link to 3D Viewer"]
             );
-            
+
             // Group by animals
             animalGroups = {};
             allSpecimens.forEach(specimen => {
@@ -28,7 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 animalGroups[animalName].push(specimen);
             });
-            
+
             // Group by bones
             boneGroups = {};
             allSpecimens.forEach(specimen => {
@@ -38,25 +44,25 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 boneGroups[boneName].push(specimen);
             });
-            
-            console.log('Loaded specimens:', allSpecimens.length);
-            console.log('Animal groups:', Object.keys(animalGroups));
-            console.log('Bone groups:', Object.keys(boneGroups));
-            
+
+            // console.log('Loaded specimens:', allSpecimens.length);
+            // console.log('Animal groups:', Object.keys(animalGroups));
+            // console.log('Bone groups:', Object.keys(boneGroups));
+
         } catch (error) {
             console.error('Error fetching specimen data:', error);
         }
     };
-    
+
 
     // Populate sidebar dropdowns
     const populateAnimalDropdown = () => {
         const animalDropdown = document.getElementById('animal-dropdown');
         animalDropdown.innerHTML = '';
-        
+
         Object.keys(animalGroups).sort().forEach(animalName => {
             const bones = animalGroups[animalName];
-            
+
             // Create animal item with sub-dropdown
             const animalItem = document.createElement('li');
             animalItem.className = 'dropdown-submenu';
@@ -74,16 +80,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             animalDropdown.appendChild(animalItem);
         });
     };
-    
+
     const populateBoneDropdown = () => {
         const boneDropdown = document.getElementById('bone-dropdown');
         boneDropdown.innerHTML = '';
-        
+
         Object.keys(boneGroups).sort().forEach(boneName => {
             if (boneName === "Other" || boneName === "") return; // Skip empty bone names
-            
+
             const specimens = boneGroups[boneName];
-            
+
             // Create bone item with sub-dropdown
             const boneItem = document.createElement('li');
             boneItem.className = 'dropdown-submenu';
@@ -112,7 +118,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         setTimeout(() => {
             contentArea.innerHTML = html;
             contentArea.style.opacity = '1';
-            
+
             // If this is the specimens page, set up the search functionality
             const searchInput = document.getElementById('specimen-search');
             if (searchInput) {
@@ -156,7 +162,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const modelId = specimen['Link to 3D Viewer'];
                 const animalName = specimen['Common Name'] || 'Unknown';
                 const boneName = specimen['Bone Display Name'] || '';
-                
+
                 return `
                     <div class="scan-item">
                         <div class="preview-frame">
@@ -211,10 +217,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const loadModelViewer = (modelId) => {
         // Remove .html extension if it exists
         const cleanModelId = modelId.replace('.html', '');
-        
+
         // Find the specimen data to get proper name and details
         const specimen = allSpecimens.find(s => s['Link to 3D Viewer'] === cleanModelId);
-        
+
         let modelName = cleanModelId;
         if (specimen) {
             modelName = `${specimen['Common Name']} ${specimen['Bone Display Name'] || ''}`.trim();
@@ -264,7 +270,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Animal Dropdown Handler - Just toggle, don't reload page
     const animalSearchLink = document.getElementById("animal-search-link");
     const animalDropdown = animalSearchLink.parentElement;
-    
+
     animalSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
         // Only toggle dropdown, don't reload page
@@ -274,7 +280,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Bone Dropdown Handler - Just toggle, don't reload page
     const boneSearchLink = document.getElementById("bone-search-link");
     const boneDropdown = boneSearchLink.parentElement;
-    
+
     boneSearchLink.addEventListener("click", (e) => {
         e.preventDefault();
         // Only toggle dropdown, don't reload page
@@ -291,37 +297,37 @@ document.addEventListener("DOMContentLoaded", async () => {
                 loadModelViewer(model);
             }
         }
-        
+
         // Handle toggle submenu
         else if (e.target.classList.contains('animal-item') || e.target.classList.contains('bone-item')) {
             e.preventDefault();
             const submenu = e.target.nextElementSibling;
             const parentLi = e.target.parentElement;
-            
+
             // Toggle submenu
             parentLi.classList.toggle('active');
         }
-        
+
         // Handle grid view model button clicks
         else if (e.target.classList.contains('scan-button')) {
             e.preventDefault();
             const model = e.target.dataset.model;
             loadModelViewer(model);
         }
-        
+
         // Handle back button clicks
         else if (e.target.classList.contains('back-button')) {
             e.preventDefault();
             loadSearchPage("Search", "Search through our specimen collection:");
         }
-        
+
         // Close dropdowns when clicking outside
-        else if (!animalDropdown.contains(e.target) && 
-                 !boneDropdown.contains(e.target) && 
-                 !e.target.classList.contains('scan-button') && 
-                 !e.target.closest('.scan-viewer-section') &&
-                 !e.target.closest('.search-container') &&
-                 !e.target.classList.contains('search-input')) {
+        else if (!animalDropdown.contains(e.target) &&
+            !boneDropdown.contains(e.target) &&
+            !e.target.classList.contains('scan-button') &&
+            !e.target.closest('.scan-viewer-section') &&
+            !e.target.closest('.search-container') &&
+            !e.target.classList.contains('search-input')) {
             animalDropdown.classList.remove('active');
             boneDropdown.classList.remove('active');
             // Close all submenus
@@ -333,7 +339,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Load search page by default after everything is set up
     loadSearchPage("Search", "Search through our specimen collection:");
-    
+
     // Make loadSearchPage available globally if needed
     window.loadSearchPage = loadSearchPage;
 });
