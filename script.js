@@ -271,11 +271,46 @@ document.addEventListener("DOMContentLoaded", async () => {
         const modelUrl = MODEL_BASE_URL + encodeURIComponent(fileName);
         const title = fileName.replace(/\.glb$/i, '');
 
+        // Capture full JSON object of the current specimen
+        const specimenData = allSpecimens.find(s => getGlbFileName(s) === fileName);
+
+        const renderMetadataTable = (data) => {
+            if (!data) return '';
+
+            // Filter Logic: Exclude technical keys
+            const excludedKeys = ['glb filename', 'link to 3d viewer', 'name as stored in database', 'status', 'id', 'object id', 'internal id'];
+
+            let rowsHtml = '';
+            for (const [key, value] of Object.entries(data)) {
+                if (excludedKeys.includes(key.toLowerCase()) || !value || String(value).trim() === '') continue;
+                rowsHtml += `
+                    <tr>
+                        <td class="meta-key">${key}</td>
+                        <td class="meta-value">${value}</td>
+                    </tr>
+                `;
+            }
+
+            if (!rowsHtml) return '';
+
+            return `
+                <div id="metadata-container">
+                    <table class="metadata-table">
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        };
+
+        const metadataHtml = renderMetadataTable(specimenData);
+
         await loadContent(`
         <div class="scan-viewer-section">
             <h1 class="model-title">${title}</h1>
             <div class="model-viewer-container" style="position: relative;">
-                    <button onclick="window.history.back()">Back</button>
+                    <button class="back-button" onclick="window.history.back()">← Back</button>
                     <model-viewer
                         src="${modelUrl}"
                         alt="${title}"
@@ -310,16 +345,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <line class="dimensionLine"></line>
                         <line class="dimensionLine"></line>
                     </svg>
-                    <div id="controlContainer" style="position: absolute; top: 8px; left: 8px; width: 100%; pointer-events: none; z-index: 20; text-align: left;">
-                      <div id="controls" class="dim" style="pointer-events: auto; display: inline-block; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.25);">
-                         <label style="margin-right: 10px; cursor: pointer;"><input type="radio" id="cms" name="user-units" value="cms" checked> Centimeters</label>
-                         <label style="margin-right: 10px; cursor: pointer;"><input type="radio" id="inches" name="user-units" value="inches"> Inches</label>
-                         <div style="margin-top: 5px;">
-                           <label style="cursor: pointer;"><input id="show-dimensions" type="checkbox" checked> Show Dimensions</label>
-                         </div>
+                    <div id="controlContainer">
+                      <div id="controls" class="dim">
+                         <label><input type="radio" id="cms" name="user-units" value="cms" checked> Centimeters</label>
+                         <label><input type="radio" id="inches" name="user-units" value="inches"> Inches</label>
+                         <label><input id="show-dimensions" type="checkbox" checked> Show Dimensions</label>
+                         ${metadataHtml ? `
+                         <button class="scroll-to-table-btn" onclick="document.getElementById('metadata-container').scrollIntoView({behavior: 'smooth'})">
+                           <i class="fas fa-table"></i> View Details Table
+                         </button>
+                         ` : ''}
                       </div>
                     </div>
                 </div>
+            ${metadataHtml}
         </div>
     `);
 
@@ -626,10 +665,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Check for URL parameters to load a specific model directly
     const urlParams = new URLSearchParams(window.location.search);
-    const srcParam = urlParams.get('src');
+    const srcParam = urlParams.get('src') || urlParams.get('model');
 
     if (srcParam) {
-        // If ?src=xxx exists, load the model viewer directly
+        // If ?src=xxx or ?model=xxx exists, load the model viewer directly
         // decodeURIComponent handles spaces/special characters (e.g. "Alligator Skull.glb")
         loadGlbViewerFromSrc(srcParam);
     } else {

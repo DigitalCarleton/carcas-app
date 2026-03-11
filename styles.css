@@ -169,6 +169,7 @@ body::before {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -265,7 +266,59 @@ body::before {
 .scan-viewer-section {
     display: flex;
     flex-direction: column;
-    height: calc(80vh);
+    min-height: 80vh;
+}
+
+/* Metadata Table Styles */
+#metadata-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    width: 100%;
+    animation: fadeInUp 0.8s ease forwards;
+}
+
+.metadata-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: var(--shadow);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.metadata-table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.metadata-table tr:last-child td {
+    border-bottom: none;
+}
+
+.metadata-table tr:nth-child(even) {
+    background-color: rgba(212, 163, 115, 0.15);
+    /* var(--accent) at 15% */
+}
+
+.metadata-table .meta-key {
+    font-weight: 700;
+    color: var(--primary);
+    width: 30%;
+    vertical-align: top;
+    background-color: rgba(139, 94, 60, 0.05);
+    /* very light var(--primary) */
+    border-right: 2px solid var(--accent);
+}
+
+.metadata-table .meta-value {
+    color: var(--text);
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .metadata-table .meta-key {
+        width: 40%;
+    }
 }
 
 .model-title {
@@ -279,7 +332,8 @@ body::before {
 
 .model-viewer-container {
     position: relative;
-    height: calc(90vh); /* Adjusted to account for title and margins */
+    height: calc(90vh);
+    /* Adjusted to account for title and margins */
     margin-bottom: 2rem;
 }
 
@@ -536,6 +590,7 @@ body::before {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -627,7 +682,7 @@ svg#dimLines {
 
 #controlContainer {
     position: absolute !important;
-    top: 10px !important;
+    top: 60px !important;
     left: 10px !important;
     width: auto !important;
     height: auto !important;
@@ -639,12 +694,24 @@ svg#dimLines {
 
 #controls {
     pointer-events: auto !important;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    display: block !important;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    display: flex !important;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
     opacity: 1 !important;
+    max-width: 180px;
+}
+
+#controls label {
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
 }
 
 
@@ -660,4 +727,23 @@ button.dim {
 
 button.dim.visible {
     opacity: 1;
+}
+
+.scroll-to-table-btn {
+    margin-top: 4px;
+    width: 100%;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: white;
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-family: 'Lato', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.scroll-to-table-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
 }
