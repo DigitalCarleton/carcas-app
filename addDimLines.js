@@ -1,6 +1,49 @@
+const DIMENSION_HOTSPOTS_MARKUP = `
+  <button name="hotspot-dot+X-Y+Z" slot="hotspot-dot+X-Y+Z" class="dot" data-position="1 -1 1" data-normal="1 0 0"></button>
+  <button name="hotspot-dim+X-Y" slot="hotspot-dim+X-Y" class="dim" data-position="1 -1 0" data-normal="1 0 0"></button>
+  <button name="hotspot-dot+X-Y-Z" slot="hotspot-dot+X-Y-Z" class="dot" data-position="1 -1 -1" data-normal="1 0 0"></button>
+  <button name="hotspot-dim+X-Z" slot="hotspot-dim+X-Z" class="dim" data-position="1 0 -1" data-normal="1 0 0"></button>
+  <button name="hotspot-dot+X+Y-Z" slot="hotspot-dot+X+Y-Z" class="dot" data-position="1 1 -1" data-normal="0 1 0"></button>
+  <button name="hotspot-dim+Y-Z" slot="hotspot-dim+Y-Z" class="dim" data-position="0 1 -1" data-normal="0 1 0"></button>
+  <button name="hotspot-dim-Y+Z" slot="hotspot-dim-Y+Z" class="dim" data-position="0 -1 1" data-normal="0 -1 0"></button>
+  <button name="hotspot-dot-X+Y-Z" slot="hotspot-dot-X+Y-Z" class="dot" data-position="-1 1 -1" data-normal="0 1 0"></button>
+  <button name="hotspot-dim-X-Z" slot="hotspot-dim-X-Z" class="dim" data-position="-1 0 -1" data-normal="-1 0 0"></button>
+  <button name="hotspot-dot-X-Y-Z" slot="hotspot-dot-X-Y-Z" class="dot" data-position="-1 -1 -1" data-normal="-1 0 0"></button>
+  <button name="hotspot-dim-X-Y" slot="hotspot-dim-X-Y" class="dim" data-position="-1 -1 0" data-normal="-1 0 0"></button>
+  <button name="hotspot-dot-X-Y+Z" slot="hotspot-dot-X-Y+Z" class="dot" data-position="-1 -1 1" data-normal="-1 0 0"></button>
+`;
+
+const DIMENSION_LINES_MARKUP = `
+  <svg id="dimLines" xmlns="http://www.w3.org/2000/svg" class="dimensionLineContainer">
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+    <line class="dimensionLine"></line>
+  </svg>
+`;
+
+function ensureDimensionMarkup(modelViewer) {
+  if (!modelViewer.querySelector('button[slot="hotspot-dot+X-Y+Z"]')) {
+    modelViewer.insertAdjacentHTML("beforeend", DIMENSION_HOTSPOTS_MARKUP);
+  }
+
+  const container = modelViewer.parentElement;
+  if (container && !container.querySelector("#dimLines")) {
+    modelViewer.insertAdjacentHTML("afterend", DIMENSION_LINES_MARKUP);
+  }
+}
+
 export function initDimensionLines(modelViewer) {
-  // 2. Original Logic (Now guaranteed to find elements)
   const checkbox = modelViewer.parentElement.querySelector("#show-dimensions");
+  ensureDimensionMarkup(modelViewer);
   const dimensionLineContainer = modelViewer.parentElement.querySelector("#dimLines");
 
   function setVisibility(element) {
@@ -44,16 +87,14 @@ export function initDimensionLines(modelViewer) {
       const isVisible = checkbox.checked && (!dimensionHotspot || dimensionHotspot.facingCamera);
 
       if (isVisible) {
-        svgLine.style.display = "block";
-        svgLine.style.stroke = "#16a5e6";
-        svgLine.style.strokeWidth = "2";
+        svgLine.classList.remove("hide");
         if (dimHotspotEl) dimHotspotEl.classList.add("visible");
       } else {
-        svgLine.style.display = "none";
+        svgLine.classList.add("hide");
         if (dimHotspotEl) dimHotspotEl.classList.remove("visible");
       }
     } else {
-      svgLine.style.display = "none";
+      svgLine.classList.add("hide");
       if (dimHotspotEl) dimHotspotEl.classList.remove("visible");
     }
   }

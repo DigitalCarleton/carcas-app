@@ -250,10 +250,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const loadContent = (html) => {
         return new Promise((resolve) => {
-            contentArea.style.opacity = '0';
+            contentArea.animate(
+                [{ opacity: 1 }, { opacity: 0 }],
+                { duration: 300, fill: 'forwards', easing: 'ease' }
+            );
             setTimeout(() => {
                 contentArea.innerHTML = html;
-                contentArea.style.opacity = '1';
+                contentArea.animate(
+                    [{ opacity: 0 }, { opacity: 1 }],
+                    { duration: 300, fill: 'forwards', easing: 'ease' }
+                );
 
                 // If this is the specimens page, set up the search functionality
                 const searchInput = document.getElementById('specimen-search');
@@ -273,6 +279,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Capture full JSON object of the current specimen
         const specimenData = allSpecimens.find(s => getGlbFileName(s) === fileName);
+        const posterId = specimenData?.['Link to 3D Viewer'];
+        const posterUrl = posterId
+            ? `https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${posterId}-poster.webp`
+            : '';
 
         const renderMetadataTable = (data) => {
             if (!data) return '';
@@ -309,42 +319,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         await loadContent(`
         <div class="scan-viewer-section">
             <h1 class="model-title">${title}</h1>
-            <div class="model-viewer-container" style="position: relative;">
+            <div class="model-viewer-container">
                     <button class="back-button" onclick="window.history.back()">← Back</button>
                     <model-viewer
                         src="${modelUrl}"
                         alt="${title}"
+                        ${posterUrl ? `poster="${posterUrl}"` : ''}
+                        ar
+                        ar-modes="webxr scene-viewer quick-look"
+                        ar-scale="fixed"
+                        min-camera-orbit="-180deg 0deg auto"
+                        max-camera-orbit="180deg 180deg auto"
+                        max-field-of-view="90deg"
+                        field-of-view="60deg"
                         camera-controls
-                        auto-rotate
-                        shadow-intensity="1"
-                        style="width: 100%; height: 80vh;">
-                        <button name="hotspot-dot+X-Y+Z" slot="hotspot-dot+X-Y+Z" class="dot" data-position="1 -1 1" data-normal="1 0 0"></button>
-                        <button name="hotspot-dim+X-Y" slot="hotspot-dim+X-Y" class="dim" data-position="1 -1 0" data-normal="1 0 0"></button>
-                        <button name="hotspot-dot+X-Y-Z" slot="hotspot-dot+X-Y-Z" class="dot" data-position="1 -1 -1" data-normal="1 0 0"></button>
-                        <button name="hotspot-dim+X-Z" slot="hotspot-dim+X-Z" class="dim" data-position="1 0 -1" data-normal="1 0 0"></button>
-                        <button name="hotspot-dot+X+Y-Z" slot="hotspot-dot+X+Y-Z" class="dot" data-position="1 1 -1" data-normal="0 1 0"></button>
-                        <button name="hotspot-dim+Y-Z" slot="hotspot-dim+Y-Z" class="dim" data-position="0 1 -1" data-normal="0 1 0"></button>
-                        <button name="hotspot-dim-Y+Z" slot="hotspot-dim-Y+Z" class="dim" data-position="0 -1 1" data-normal="0 -1 0"></button>
-                        <button name="hotspot-dot-X+Y-Z" slot="hotspot-dot-X+Y-Z" class="dot" data-position="-1 1 -1" data-normal="0 1 0"></button>
-                        <button name="hotspot-dim-X-Z" slot="hotspot-dim-X-Z" class="dim" data-position="-1 0 -1" data-normal="-1 0 0"></button>
-                        <button name="hotspot-dot-X-Y-Z" slot="hotspot-dot-X-Y-Z" class="dot" data-position="-1 -1 -1" data-normal="-1 0 0"></button>
-                        <button name="hotspot-dim-X-Y" slot="hotspot-dim-X-Y" class="dim" data-position="-1 -1 0" data-normal="-1 0 0"></button>
-                        <button name="hotspot-dot-X-Y+Z" slot="hotspot-dot-X-Y+Z" class="dot" data-position="-1 -1 1" data-normal="-1 0 0"></button>
+                        touch-action="pan-y"
+                        environment-image="neutral"
+                        shadow-intensity="1">
                     </model-viewer>
-                    <svg id="dimLines" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;" class="dimensionLineContainer">
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                        <line class="dimensionLine"></line>
-                    </svg>
                     <div id="controlContainer">
                       <div id="controls" class="dim">
                          <label><input type="radio" id="cms" name="user-units" value="cms" checked> Centimeters</label>
@@ -393,7 +385,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <img src="https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${modelId}-poster.webp?" 
                                 alt="${animalName} ${boneName}"
                                 class="preview-iframe"
-                                onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'no-preview\'>No Preview</div>'"
+                                onerror="this.classList.add('hide'); this.parentElement.innerHTML='<div class=\'no-preview\'>No Preview</div>'"
                         />
                         </div>
                     <div class="scan-info">
@@ -473,7 +465,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <div class="model-viewer-container">
                     <button class="back-button">← Back</button>
                     <iframe src="https://3dviewer.sites.carleton.edu/carcas/html-files/${cleanModelId}.html" 
-                            style="border:0; width:100%; height:100%;" 
+                            width="100%"
+                            height="100%"
                             name="model-viewer" 
                             scrolling="no" 
                             frameborder="0" 
@@ -506,7 +499,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Animal Dropdown Handler - Just toggle, don't reload page
     // Logo / Home Link — clicking returns to the default search page
     const homeLink = document.getElementById("home-link");
-    homeLink.style.cursor = "pointer";
     homeLink.addEventListener("click", () => {
         // Clear any URL params (e.g. ?src=...) and navigate to base page
         window.location.href = window.location.pathname;
