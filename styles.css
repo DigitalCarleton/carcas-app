@@ -664,22 +664,6 @@ body::before {
 }
 
 
-.dimensionLineContainer,
-svg#dimLines {
-    pointer-events: none !important;
-    z-index: 100;
-}
-
-
-
-.dimensionLine {
-    stroke: #16a5e6 !important;
-    stroke-width: 1.5px !important;
-    stroke-dasharray: 5, 5 !important;
-    opacity: 0.8 !important;
-}
-
-
 #controlContainer {
     position: absolute !important;
     top: 60px !important;
@@ -714,21 +698,6 @@ svg#dimLines {
     white-space: nowrap;
 }
 
-
-#ar-button {
-    display: none !important;
-}
-
-button.dim {
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.4s ease-in-out;
-}
-
-button.dim.visible {
-    opacity: 1;
-}
-
 .scroll-to-table-btn {
     margin-top: 4px;
     width: 100%;
@@ -746,4 +715,13 @@ button.dim.visible {
 .scroll-to-table-btn:hover {
     background: var(--accent);
     border-color: var(--accent);
+}
+
+button.dim {
+    opacity: 0;
+    --min-hotspot-opacity: 1;
+}
+
+button.dim.visible {
+    opacity: 1;
 }

@@ -273,12 +273,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
     const loadGlbViewerFromSrc = async (src) => {
-        const fileName = decodeURIComponent(src);
+        // src may be a 'Name as stored in database' slug or a legacy GLB filename
+        const specimenData = allSpecimens.find(s =>
+            s['Name as stored in database'] === src || getGlbFileName(s) === src
+        );
+        const fileName = specimenData ? getGlbFileName(specimenData) : src;
         const modelUrl = MODEL_BASE_URL + encodeURIComponent(fileName);
-        const title = fileName.replace(/\.glb$/i, '');
-
-        // Capture full JSON object of the current specimen
-        const specimenData = allSpecimens.find(s => getGlbFileName(s) === fileName);
+        const title = specimenData
+            ? `${specimenData['Common Name'] || ''} ${specimenData['Bone Display Name'] || ''}`.trim()
+            : fileName.replace(/\.glb$/i, '');
         const posterId = specimenData?.['Link to 3D Viewer'];
         const posterUrl = posterId
             ? `https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${posterId}-poster.webp`
@@ -320,7 +323,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="scan-viewer-section">
             <h1 class="model-title">${title}</h1>
             <div class="model-viewer-container">
-                    <button class="back-button" onclick="window.history.back()">← Back</button>
+                    <button class="back-button">← Back</button>
                     <model-viewer
                         src="${modelUrl}"
                         alt="${title}"
@@ -338,7 +341,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         shadow-intensity="1">
                     </model-viewer>
                     <div id="controlContainer">
-                      <div id="controls" class="dim">
+                      <div id="controls">
                          <label><input type="radio" id="cms" name="user-units" value="cms" checked> Centimeters</label>
                          <label><input type="radio" id="inches" name="user-units" value="inches"> Inches</label>
                          <label><input id="show-dimensions" type="checkbox" checked> Show Dimensions</label>
@@ -548,7 +551,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             e.stopPropagation(); // prevent parent animal/bone handlers from firing
             const filename = e.target.dataset.filename;
             if (filename) {
-                window.location.href = `?src=${encodeURIComponent(filename)}`;
+                const specimen = allSpecimens.find(s => getGlbFileName(s) === filename);
+                const slug = specimen?.['Name as stored in database'] || encodeURIComponent(filename);
+                window.location.href = `?src=${slug}`;
             } else {
                 console.error('Missing GLB file for this item');
             }
@@ -576,6 +581,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     `Showing ${prefix} specimens for ${animal}`,
                     filtered
                 );
+                history.pushState(null, '', `?animal=${encodeURIComponent(animal)}&prefix=${encodeURIComponent(prefix)}`);
             }
 
             toggleSubmenu(nestedEl);
@@ -597,6 +603,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     `Showing all ${animal} specimens`,
                     filtered
                 );
+                history.pushState(null, '', `?animal=${encodeURIComponent(animal)}`);
             }
 
             toggleSubmenu(animalEl);
@@ -613,6 +620,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const filtered = Object.values(animalGroups).flatMap(cats => cats[prefix] || []);
                 setActiveFilter(boneToggleEl);
                 loadSearchPage(`Bone: ${prefix}`, `Showing all ${prefix} specimens`, filtered);
+                history.pushState(null, '', `?bone=${encodeURIComponent(prefix)}`);
             }
             const toggleElement = e.target.closest('.animal-item, .bone-item, .nested-item, .level-2-toggle');
             const parentLi = toggleElement.parentElement;
@@ -626,7 +634,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             e.preventDefault();
             const filename = e.target.dataset.filename;
             if (filename) {
-                window.location.href = `?src=${encodeURIComponent(filename)}`;
+                const specimen = allSpecimens.find(s => getGlbFileName(s) === filename);
+                const slug = specimen?.['Name as stored in database'] || encodeURIComponent(filename);
+                window.location.href = `?src=${slug}`;
             } else {
                 console.error("Missing GLB file for this item");
             }
@@ -635,8 +645,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Handle back button clicks
         else if (e.target.classList.contains('back-button')) {
             e.preventDefault();
-            setActiveFilter(null);
-            loadSearchPage("Search", "Search through our specimen collection:");
+            window.history.back();
         }
 
         // Close dropdowns when clicking outside
@@ -655,16 +664,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Check for URL parameters to load a specific model directly
+    // Check for URL parameters to load a specific model or restore filter state
     const urlParams = new URLSearchParams(window.location.search);
     const srcParam = urlParams.get('src') || urlParams.get('model');
+    const animalParam = urlParams.get('animal');
+    const prefixParam = urlParams.get('prefix');
+    const boneParam = urlParams.get('bone');
 
     if (srcParam) {
-        // If ?src=xxx or ?model=xxx exists, load the model viewer directly
-        // decodeURIComponent handles spaces/special characters (e.g. "Alligator Skull.glb")
         loadGlbViewerFromSrc(srcParam);
+    } else if (animalParam && prefixParam) {
+        const filtered = animalGroups[animalParam]?.[prefixParam] || [];
+        loadSearchPage(`Animal: ${animalParam} › ${prefixParam}`, `Showing ${prefixParam} specimens for ${animalParam}`, filtered);
+    } else if (animalParam) {
+        const filtered = Object.values(animalGroups[animalParam] || {}).flat();
+        loadSearchPage(`Animal: ${animalParam}`, `Showing all ${animalParam} specimens`, filtered);
+    } else if (boneParam) {
+        const filtered = Object.values(animalGroups).flatMap(cats => cats[boneParam] || []);
+        loadSearchPage(`Bone: ${boneParam}`, `Showing all ${boneParam} specimens`, filtered);
     } else {
-        // Otherwise, load the default search page
         loadSearchPage("Search", "Search through our specimen collection:");
     }
 

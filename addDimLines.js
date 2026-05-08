@@ -35,16 +35,15 @@ function ensureDimensionMarkup(modelViewer) {
     modelViewer.insertAdjacentHTML("beforeend", DIMENSION_HOTSPOTS_MARKUP);
   }
 
-  const container = modelViewer.parentElement;
-  if (container && !container.querySelector("#dimLines")) {
-    modelViewer.insertAdjacentHTML("afterend", DIMENSION_LINES_MARKUP);
+  if (!modelViewer.querySelector("#dimLines")) {
+    modelViewer.insertAdjacentHTML("afterbegin", DIMENSION_LINES_MARKUP);
   }
 }
 
 export function initDimensionLines(modelViewer) {
   const checkbox = modelViewer.parentElement.querySelector("#show-dimensions");
   ensureDimensionMarkup(modelViewer);
-  const dimensionLineContainer = modelViewer.parentElement.querySelector("#dimLines");
+  const dimensionLineContainer = modelViewer.querySelector("#dimLines");
 
   function setVisibility(element) {
     if (checkbox.checked) {
@@ -99,7 +98,7 @@ export function initDimensionLines(modelViewer) {
     }
   }
 
-  const dimLines = modelViewer.parentElement.querySelectorAll("#dimLines line");
+  const dimLines = modelViewer.querySelectorAll("#dimLines line");
 
   const renderSVG = () => {
     drawLine(dimLines[0], "hotspot-dot+X-Y+Z", "hotspot-dot+X-Y-Z", "hotspot-dim+X-Y");
