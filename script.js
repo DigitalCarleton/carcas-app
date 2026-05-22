@@ -1,53 +1,109 @@
+const MODEL_BASE_URL = 'https://3dviewer.sites.carleton.edu/carcas/carcas-models/models/';
+import { initDimensionLines } from './addDimLines.js';
+
+// KNOWN_GLB_FILES and local index removed in favor of dynamic API data
+
 document.addEventListener("DOMContentLoaded", async () => {
     const contentArea = document.getElementById("content-area");
+    const getGlbFileName = (item) => {
+        // Priority 1: Check if there's an explicit GLB Filename column
+        if (item['GLB Filename']) {
+            let fileName = item['GLB Filename'].trim();
+            if (!fileName.toLowerCase().endsWith('.glb')) {
+                fileName += '.glb';
+            }
+            return fileName;
+        }
+
+        // Priority 2: Fallback to deriving from Link to 3D Viewer
+        const link = item['Link to 3D Viewer'];
+        if (!link) return null;
+
+        // 1. Remove .html extension and trim
+        let fileName = link.trim().replace(/\.html?$/i, '');
+
+        // 2. Replace hyphens with spaces
+        fileName = fileName.replace(/-/g, ' ');
+
+        // 3. Title Case: Capitalize first letter of each word
+        // Also capitalize letter immediately after an opening parenthesis
+        fileName = fileName.replace(/(?:^|\s|\()\w/g, (match) => {
+            return match.toUpperCase();
+        });
+
+        // 4. Ensure .glb suffix
+        if (!fileName.toLowerCase().endsWith('.glb')) {
+            fileName += '.glb';
+        }
+        return fileName;
+    };
+
+    // Helper to get the grouping prefix for a bone
+    const getBonePrefix = (specimen) => {
+        // Priority 1: First word of the Element field
+        let element = specimen["Element"];
+        if (element && element.trim()) {
+            // Standardize: "skull" -> "Skull"
+            let word = element.trim().split(/\s+/)[0];
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        }
+
+        // Priority 2: Extract from Link to 3D Viewer filename
+        const link = specimen["Link to 3D Viewer"];
+        if (link) {
+            // Remove common prefixes/suffixes and get first keyword
+            const parts = link.split('-');
+            const animalName = (specimen["Common Name"] || "").toLowerCase();
+
+            const part = parts.find(p => p.toLowerCase() !== animalName && p.length > 2 && isNaN(p));
+            if (part) return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+        }
+        return "Other";
+    };
 
     // Global variables for specimen data
     let allSpecimens = [];
     let animalGroups = {};
-    let boneGroups = {};
 
     // Fetch and process specimen data from API
     const fetchSpecimenData = async () => {
         try {
-            // Use URL and Sheet from spreadapi.js
-            const fetchUrl = `${url}?sheet=${sheet}`;
-            const response = await fetch(fetchUrl);
-            const result = await response.json();
-            const data = result.data || [];
+            // sessionStorage cache: avoid re-fetching on logo/back navigation (5-min TTL)
+            let data;
+            const cached = sessionStorage.getItem('carcas_data');
+            if (cached) {
+                const { ts, rows } = JSON.parse(cached);
+                if (Date.now() - ts < 300_000) data = rows;
+            }
+            if (!data) {
+                const fetchUrl = `${url}?sheet=${sheet}`;
+                const result = await (await fetch(fetchUrl)).json();
+                data = result.data || [];
+                sessionStorage.setItem('carcas_data', JSON.stringify({ ts: Date.now(), rows: data }));
+            }
 
-            // console.log('Raw data from SpreadAPI (first row):', data[0]);
+
+            console.log('Raw data from SpreadAPI (first row):', data[0]);
 
             // Filter only specimens that are live on website and have valid data
-            // Note: In SpreadAPI, column names are exactly as in the header row
             allSpecimens = data.filter(specimen =>
-                specimen["Status"] === "live on website" &&
+                specimen.Status === "live on website" &&
                 specimen["Common Name"] &&
                 specimen["Link to 3D Viewer"]
             );
 
-            // Group by animals
+            // Group by animals -> bone prefix categories
             animalGroups = {};
             allSpecimens.forEach(specimen => {
                 const animalName = specimen["Common Name"];
-                if (!animalGroups[animalName]) {
-                    animalGroups[animalName] = [];
-                }
-                animalGroups[animalName].push(specimen);
+                const prefix = getBonePrefix(specimen);
+                animalGroups[animalName] ??= {};
+                animalGroups[animalName][prefix] ??= [];
+                animalGroups[animalName][prefix].push(specimen);
             });
 
-            // Group by bones
-            boneGroups = {};
-            allSpecimens.forEach(specimen => {
-                const boneName = specimen["Element"] || "Other";
-                if (!boneGroups[boneName]) {
-                    boneGroups[boneName] = [];
-                }
-                boneGroups[boneName].push(specimen);
-            });
-
-            // console.log('Loaded specimens:', allSpecimens.length);
-            // console.log('Animal groups:', Object.keys(animalGroups));
-            // console.log('Bone groups:', Object.keys(boneGroups));
+            populateAnimalDropdown();
+            populateBoneDropdown();
 
         } catch (error) {
             console.error('Error fetching specimen data:', error);
@@ -61,20 +117,69 @@ document.addEventListener("DOMContentLoaded", async () => {
         animalDropdown.innerHTML = '';
 
         Object.keys(animalGroups).sort().forEach(animalName => {
-            const bones = animalGroups[animalName];
+            const categories = animalGroups[animalName];
 
-            // Create animal item with sub-dropdown
             const animalItem = document.createElement('li');
             animalItem.className = 'dropdown-submenu';
+
+            let submenuHtml = '';
+            Object.keys(categories).sort().forEach(prefix => {
+                const specimens = categories[prefix];
+
+                if (specimens.length > 1) {
+                    // Level 2 Submenu for prefixes with multiple items
+                    submenuHtml += `
+                        <li class="dropdown-submenu level-2">
+                            <a href="#" class="dropdown-item bone-item nested-item" data-prefix="${prefix}">
+                                ${prefix}
+                                <i class="fas fa-chevron-right submenu-icon"></i>
+                            </a>
+                            <ul class="submenu">
+                                ${specimens.map(s => {
+                        const fileName = getGlbFileName(s);
+                        // Label priority: Bone Display Name > Element > Filename Keyword
+                        let label = s['Bone Display Name'] || s['Element'];
+                        if (!label || label.toLowerCase() === prefix.toLowerCase()) {
+                            label = s['Link to 3D Viewer'].replace(`${animalName.toLowerCase()}-`, '').replace(/-/g, ' ');
+                        }
+                        return `
+                                        <li>
+                                            <a href="#" class="submenu-item" 
+                                               data-common="${s['Common Name']}" 
+                                               data-filename="${fileName}">
+                                               ${label}
+                                            </a>
+                                        </li>
+                                    `;
+                    }).join('')}
+                            </ul>
+                        </li>
+                    `;
+                } else {
+                    // Direct link for single item bones
+                    const s = specimens[0];
+                    const fileName = getGlbFileName(s);
+                    // Use Element or Prefix for the link label
+                    const label = s['Element'] || prefix;
+                    submenuHtml += `
+                        <li>
+                            <a href="#" class="submenu-item" 
+                               data-common="${s['Common Name']}" 
+                               data-filename="${fileName}">
+                               ${label}
+                            </a>
+                        </li>
+                    `;
+                }
+            });
+
             animalItem.innerHTML = `
                 <a href="#" class="dropdown-item animal-item" data-animal="${animalName}">
                     ${animalName}
                     <i class="fas fa-chevron-right submenu-icon"></i>
                 </a>
                 <ul class="submenu">
-                    ${bones.map(bone => `
-                        <li><a href="#" class="submenu-item" data-model="${bone['Link to 3D Viewer']}">${bone['Element'] || 'Bone'}</a></li>
-                    `).join('')}
+                    ${submenuHtml}
                 </ul>
             `;
             animalDropdown.appendChild(animalItem);
@@ -85,47 +190,180 @@ document.addEventListener("DOMContentLoaded", async () => {
         const boneDropdown = document.getElementById('bone-dropdown');
         boneDropdown.innerHTML = '';
 
-        Object.keys(boneGroups).sort().forEach(boneName => {
-            if (boneName === "Other" || boneName === "") return; // Skip empty bone names
+        // Build prefix groups by flattening all specimens from animalGroups
+        // (boneGroups is never separately populated, so we derive from animalGroups)
+        const prefixGroups = {};
+        Object.values(animalGroups).forEach(categories => {
+            Object.keys(categories).forEach(prefix => {
+                if (prefix === "Other" || prefix === "") return;
+                prefixGroups[prefix] ??= [];
+                prefixGroups[prefix].push(...categories[prefix]);
+            });
+        });
 
-            const specimens = boneGroups[boneName];
+        Object.keys(prefixGroups).sort().forEach(prefix => {
+            const specimens = prefixGroups[prefix];
 
-            // Create bone item with sub-dropdown
             const boneItem = document.createElement('li');
             boneItem.className = 'dropdown-submenu';
-            boneItem.innerHTML = `
-                <a href="#" class="dropdown-item bone-item" data-bone="${boneName}">
-                    ${boneName}
-                    <i class="fas fa-chevron-right submenu-icon"></i>
-                </a>
-                <ul class="submenu">
-                    ${specimens.map(specimen => `
-                        <li><a href="#" class="submenu-item" data-model="${specimen['Link to 3D Viewer']}">${specimen['Common Name']}</a></li>
-                    `).join('')}
-                </ul>
-            `;
+
+            if (specimens.length > 1) {
+                boneItem.innerHTML = `
+                    <a href="#" class="dropdown-item bone-item level-2-toggle" data-bone="${prefix}">
+                        ${prefix}
+                        <i class="fas fa-chevron-right submenu-icon"></i>
+                    </a>
+                    <ul class="submenu">
+                        ${specimens.map(specimen => {
+                    const fileName = getGlbFileName(specimen);
+                    return `
+                                <li>
+                                    <a href="#" class="submenu-item" 
+                                       data-common="${specimen['Common Name'] || ''}" 
+                                       data-filename="${fileName || ''}">
+                                       ${specimen['Common Name']}
+                                    </a>
+                                </li>
+                            `;
+                }).join('')}
+                    </ul>
+                `;
+            } else {
+                const s = specimens[0];
+                const fileName = getGlbFileName(s);
+                boneItem.innerHTML = `
+                    <a href="#" class="submenu-item" 
+                       data-common="${s['Common Name'] || ''}" 
+                       data-filename="${fileName || ''}">
+                       ${prefix} (${s['Common Name']})
+                    </a>
+                `;
+            }
             boneDropdown.appendChild(boneItem);
         });
     };
 
     // Initialize data and populate dropdowns
+    // buildFileIndex() removed
     await fetchSpecimenData();
-    populateAnimalDropdown();
-    populateBoneDropdown();
+    // Dropdowns are populated inside fetchSpecimenData on success
 
     const loadContent = (html) => {
-        contentArea.style.opacity = '0';
-        setTimeout(() => {
-            contentArea.innerHTML = html;
-            contentArea.style.opacity = '1';
+        return new Promise((resolve) => {
+            contentArea.animate(
+                [{ opacity: 1 }, { opacity: 0 }],
+                { duration: 300, fill: 'forwards', easing: 'ease' }
+            );
+            setTimeout(() => {
+                contentArea.innerHTML = html;
+                contentArea.animate(
+                    [{ opacity: 0 }, { opacity: 1 }],
+                    { duration: 300, fill: 'forwards', easing: 'ease' }
+                );
 
-            // If this is the specimens page, set up the search functionality
-            const searchInput = document.getElementById('specimen-search');
-            if (searchInput) {
-                setupSearch();
-            }
-        }, 300);
+                // If this is the specimens page, set up the search functionality
+                const searchInput = document.getElementById('specimen-search');
+                if (searchInput) {
+                    setupSearch();
+                }
+                resolve();
+            }, 300);
+        });
     };
+
+
+    const loadGlbViewerFromSrc = async (src) => {
+        // src may be a 'Name as stored in database' slug or a legacy GLB filename
+        const specimenData = allSpecimens.find(s =>
+            s['Name as stored in database'] === src || getGlbFileName(s) === src
+        );
+        const fileName = specimenData ? getGlbFileName(specimenData) : src;
+        const modelUrl = MODEL_BASE_URL + encodeURIComponent(fileName);
+        const title = specimenData
+            ? `${specimenData['Common Name'] || ''} ${specimenData['Bone Display Name'] || ''}`.trim()
+            : fileName.replace(/\.glb$/i, '');
+        const posterId = specimenData?.['Link to 3D Viewer'];
+        const posterUrl = posterId
+            ? `https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${posterId}-poster.webp`
+            : '';
+
+        const renderMetadataTable = (data) => {
+            if (!data) return '';
+
+            // Filter Logic: Exclude technical keys
+            const excludedKeys = ['glb filename', 'link to 3d viewer', 'name as stored in database', 'status', 'id', 'object id', 'internal id'];
+
+            let rowsHtml = '';
+            for (const [key, value] of Object.entries(data)) {
+                if (excludedKeys.includes(key.toLowerCase()) || !value || String(value).trim() === '') continue;
+                rowsHtml += `
+                    <tr>
+                        <td class="meta-key">${key}</td>
+                        <td class="meta-value">${value}</td>
+                    </tr>
+                `;
+            }
+
+            if (!rowsHtml) return '';
+
+            return `
+                <div id="metadata-container">
+                    <table class="metadata-table">
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        };
+
+        const metadataHtml = renderMetadataTable(specimenData);
+
+        await loadContent(`
+        <div class="scan-viewer-section">
+            <h1 class="model-title">${title}</h1>
+            <div class="model-viewer-container">
+                    <button class="back-button">← Back</button>
+                    <model-viewer
+                        src="${modelUrl}"
+                        alt="${title}"
+                        ${posterUrl ? `poster="${posterUrl}"` : ''}
+                        ar
+                        ar-modes="webxr scene-viewer quick-look"
+                        ar-scale="fixed"
+                        min-camera-orbit="-180deg 0deg auto"
+                        max-camera-orbit="180deg 180deg auto"
+                        max-field-of-view="90deg"
+                        field-of-view="45deg"
+                        camera-controls
+                        touch-action="pan-y"
+                        environment-image="neutral"
+                        shadow-intensity="1">
+                    </model-viewer>
+                    <div id="controlContainer">
+                      <div id="controls">
+                         <label><input type="radio" id="cms" name="user-units" value="cms" checked> Centimeters</label>
+                         <label><input type="radio" id="inches" name="user-units" value="inches"> Inches</label>
+                         <label><input id="show-dimensions" type="checkbox" checked> Show Dimensions</label>
+                         ${metadataHtml ? `
+                         <button class="scroll-to-table-btn" onclick="document.getElementById('metadata-container').scrollIntoView({behavior: 'smooth'})">
+                           <i class="fas fa-table"></i> View Details Table
+                         </button>
+                         ` : ''}
+                      </div>
+                    </div>
+                </div>
+            ${metadataHtml}
+        </div>
+    `);
+
+
+        const modelViewer = document.querySelector('model-viewer');
+
+
+        initDimensionLines(modelViewer);
+    };
+    window.loadGlbViewerFromSrc = loadGlbViewerFromSrc;
 
     const renderSpecimens = (filteredSpecimens) => {
         if (filteredSpecimens.length === 0) {
@@ -138,47 +376,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         return filteredSpecimens.map(specimen => {
-            // Handle both old format (hardcoded) and new format (API data)
-            if (specimen.name && specimen.file) {
-                // Old format
-                return `
-                    <div class="scan-item">
-                        <div class="preview-frame">
-                            <iframe 
-                                src="https://3dviewer.sites.carleton.edu/carcas/html-files/${specimen.name}-${specimen.file}.html?" 
-                                loading="lazy"
-                                class="preview-iframe"
-                                title="${specimen.name.charAt(0).toUpperCase() + specimen.name.slice(1)} ${specimen.file}"
-                            ></iframe>
-                        </div>
-                        <div class="scan-info">
-                            <h4>${specimen.name.charAt(0).toUpperCase() + specimen.name.slice(1)}</h4>
-                            <button class="scan-button" data-model="${specimen.name}-${specimen.file}.html">View Model</button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // New format from API
-                const modelId = specimen['Link to 3D Viewer'];
-                const animalName = specimen['Common Name'] || 'Unknown';
-                const boneName = specimen['Bone Display Name'] || '';
+            // New format from API
+            const modelId = specimen['Link to 3D Viewer'];
+            const animalName = specimen['Common Name'] || 'Unknown';
+            const boneName = specimen['Bone Display Name'] || '';
+            const fileName = getGlbFileName(specimen);
 
-                return `
-                    <div class="scan-item">
-                        <div class="preview-frame">
-                            <img src="https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${modelId}-poster.webp?" 
-                                 alt="${animalName} ${boneName}"
-                                 class="preview-iframe"
-                            />
-                            </div>
-                        <div class="scan-info">
-                            <h4>${animalName}</h4>
-                            <p class="bone-name">${boneName}</p>
-                            <button class="scan-button" data-model="${modelId}">View Model</button>
+            return `
+                <div class="scan-item">
+                    <div class="preview-frame">
+                        <img src="https://3dviewer.sites.carleton.edu/carcas/carcas-models/posters/${modelId}-poster.webp?" 
+                                alt="${animalName} ${boneName}"
+                                class="preview-iframe"
+                                onerror="this.classList.add('hide'); this.parentElement.innerHTML='<div class=\'no-preview\'>No Preview</div>'"
+                        />
                         </div>
+                    <div class="scan-info">
+                        <h4>${animalName}</h4>
+                        <p class="bone-name">${boneName}</p>
+                        <button class="scan-button ${fileName ? '' : 'disabled'}" 
+                                data-common="${animalName}" 
+                                data-element="${boneName}" 
+                                data-link="${modelId}"
+                                data-filename="${fileName || ''}">
+                            View Model
+                        </button>
                     </div>
-                `;
-            }
+                </div>
+            `;
         }).join('');
     };
 
@@ -189,9 +414,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         const performSearch = (searchTerm) => {
             const normalizedTerm = searchTerm.toLowerCase().trim();
             const filteredSpecimens = allSpecimens.filter(specimen => {
-                const animalName = specimen['Common Name'] ? specimen['Common Name'].toLowerCase() : '';
-                const boneName = specimen['Element'] ? specimen['Element'].toLowerCase() : '';
-                return animalName.includes(normalizedTerm) || boneName.includes(normalizedTerm);
+                const animalName = (specimen['Common Name'] || '').toLowerCase();
+                const element = (specimen['Element'] || '').toLowerCase();
+                const displayName = (specimen['Bone Display Name'] || '').toLowerCase();
+                const dbName = (specimen['Name as stored in database'] || '').toLowerCase();
+
+                return animalName.includes(normalizedTerm) ||
+                    element.includes(normalizedTerm) ||
+                    displayName.includes(normalizedTerm) ||
+                    dbName.includes(normalizedTerm);
             });
             specimensGrid.innerHTML = renderSpecimens(filteredSpecimens);
         };
@@ -237,7 +468,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <div class="model-viewer-container">
                     <button class="back-button">← Back</button>
                     <iframe src="https://3dviewer.sites.carleton.edu/carcas/html-files/${cleanModelId}.html" 
-                            style="border:0; width:100%; height:100%;" 
+                            width="100%"
+                            height="100%"
                             name="model-viewer" 
                             scrolling="no" 
                             frameborder="0" 
@@ -268,6 +500,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     // Animal Dropdown Handler - Just toggle, don't reload page
+    // Logo / Home Link — clicking returns to the default search page
+    const homeLink = document.getElementById("home-link");
+    homeLink.addEventListener("click", () => {
+        // Clear any URL params (e.g. ?src=...) and navigate to base page
+        window.location.href = window.location.pathname;
+    });
+
     const animalSearchLink = document.getElementById("animal-search-link");
     const animalDropdown = animalSearchLink.parentElement;
 
@@ -287,38 +526,126 @@ document.addEventListener("DOMContentLoaded", async () => {
         boneDropdown.classList.toggle("active");
     });
 
+    // --- Active filter helper ---
+    // Sets .active-filter on the given element, clearing any previous highlights
+    // across BOTH sidebars so only one filter is active at a time.
+    const setActiveFilter = (el) => {
+        document.querySelectorAll('.active-filter').forEach(x => x.classList.remove('active-filter'));
+        if (el) el.classList.add('active-filter');
+    };
+
+    // Helper: toggle a dropdown-submenu li open/closed, closing siblings at same level
+    const toggleSubmenu = (toggleEl) => {
+        const parentLi = toggleEl.parentElement;
+        const siblings = parentLi.parentElement.querySelectorAll(':scope > .dropdown-submenu.active');
+        siblings.forEach(sib => { if (sib !== parentLi) sib.classList.remove('active'); });
+        parentLi.classList.toggle('active');
+    };
+
     // Handle dropdown interactions and model clicks
     document.addEventListener('click', (e) => {
-        // Handle submenu item clicks (bone/specimen selection)
+
+        // ── 1. Individual specimen link → load 3D viewer ──────────────────────
         if (e.target.classList.contains('submenu-item')) {
             e.preventDefault();
-            const model = e.target.dataset.model;
-            if (model) {
-                loadModelViewer(model);
+            e.stopPropagation(); // prevent parent animal/bone handlers from firing
+            const filename = e.target.dataset.filename;
+            if (filename) {
+                const specimen = allSpecimens.find(s => getGlbFileName(s) === filename);
+                const slug = specimen?.['Name as stored in database'] || encodeURIComponent(filename);
+                window.location.href = `?src=${slug}`;
+            } else {
+                console.error('Missing GLB file for this item');
             }
+            return;
         }
 
-        // Handle toggle submenu
-        else if (e.target.classList.contains('animal-item') || e.target.classList.contains('bone-item')) {
+        // ── 2. Bone category inside an animal submenu (.nested-item) ─────────
+        //    e.g. Alligator > Skull  →  filter grid to Alligator Skull specimens
+        const nestedEl = e.target.closest('.nested-item');
+        if (nestedEl) {
             e.preventDefault();
-            const submenu = e.target.nextElementSibling;
-            const parentLi = e.target.parentElement;
+            e.stopPropagation(); // prevent .animal-item handler below from firing
 
-            // Toggle submenu
+            const prefix = nestedEl.dataset.prefix;
+            // Walk up to find the parent animal link
+            const animalLink = nestedEl.closest('.dropdown-submenu')?.parentElement?.closest('.dropdown-submenu')?.querySelector('.animal-item');
+            const animal = animalLink?.dataset.animal;
+
+            let filtered = [];
+            if (animal && prefix && animalGroups[animal]?.[prefix]) {
+                filtered = animalGroups[animal][prefix];
+                setActiveFilter(nestedEl);
+                loadSearchPage(
+                    `Animal: ${animal} › ${prefix}`,
+                    `Showing ${prefix} specimens for ${animal}`,
+                    filtered
+                );
+                history.pushState(null, '', `?animal=${encodeURIComponent(animal)}&prefix=${encodeURIComponent(prefix)}`);
+            }
+
+            toggleSubmenu(nestedEl);
+            return;
+        }
+
+        // ── 3. Animal name click (.animal-item) ──────────────────────────────
+        //    e.g. Alligator  →  filter grid to all Alligator specimens
+        const animalEl = e.target.closest('.animal-item');
+        if (animalEl) {
+            e.preventDefault();
+
+            const animal = animalEl.dataset.animal;
+            if (animal && animalGroups[animal]) {
+                const filtered = Object.values(animalGroups[animal]).flat();
+                setActiveFilter(animalEl);
+                loadSearchPage(
+                    `Animal: ${animal}`,
+                    `Showing all ${animal} specimens`,
+                    filtered
+                );
+                history.pushState(null, '', `?animal=${encodeURIComponent(animal)}`);
+            }
+
+            toggleSubmenu(animalEl);
+            return;
+        }
+
+        // ── 4. Bone prefix in the Bone sidebar (.level-2-toggle) ─────────────
+        //    e.g. Skull  →  filter grid to Skull specimens across all animals
+        const boneToggleEl = e.target.closest('.level-2-toggle');
+        if (boneToggleEl) {
+            e.preventDefault();
+            const prefix = boneToggleEl.dataset.bone;
+            if (prefix) {
+                const filtered = Object.values(animalGroups).flatMap(cats => cats[prefix] || []);
+                setActiveFilter(boneToggleEl);
+                loadSearchPage(`Bone: ${prefix}`, `Showing all ${prefix} specimens`, filtered);
+                history.pushState(null, '', `?bone=${encodeURIComponent(prefix)}`);
+            }
+            const toggleElement = e.target.closest('.animal-item, .bone-item, .nested-item, .level-2-toggle');
+            const parentLi = toggleElement.parentElement;
+            const siblings = parentLi.parentElement.querySelectorAll(':scope > .dropdown-submenu.active');
+            siblings.forEach(sib => { if (sib !== parentLi) sib.classList.remove('active'); });
             parentLi.classList.toggle('active');
         }
 
         // Handle grid view model button clicks
         else if (e.target.classList.contains('scan-button')) {
             e.preventDefault();
-            const model = e.target.dataset.model;
-            loadModelViewer(model);
+            const filename = e.target.dataset.filename;
+            if (filename) {
+                const specimen = allSpecimens.find(s => getGlbFileName(s) === filename);
+                const slug = specimen?.['Name as stored in database'] || encodeURIComponent(filename);
+                window.location.href = `?src=${slug}`;
+            } else {
+                console.error("Missing GLB file for this item");
+            }
         }
 
         // Handle back button clicks
         else if (e.target.classList.contains('back-button')) {
             e.preventDefault();
-            loadSearchPage("Search", "Search through our specimen collection:");
+            window.history.back();
         }
 
         // Close dropdowns when clicking outside
@@ -337,9 +664,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Load search page by default after everything is set up
-    loadSearchPage("Search", "Search through our specimen collection:");
+    // Check for URL parameters to load a specific model or restore filter state
+    const urlParams = new URLSearchParams(window.location.search);
+    const srcParam = urlParams.get('src') || urlParams.get('model');
+    const animalParam = urlParams.get('animal');
+    const prefixParam = urlParams.get('prefix');
+    const boneParam = urlParams.get('bone');
 
-    // Make loadSearchPage available globally if needed
-    window.loadSearchPage = loadSearchPage;
+    if (srcParam) {
+        loadGlbViewerFromSrc(srcParam);
+    } else if (animalParam && prefixParam) {
+        const filtered = animalGroups[animalParam]?.[prefixParam] || [];
+        loadSearchPage(`Animal: ${animalParam} › ${prefixParam}`, `Showing ${prefixParam} specimens for ${animalParam}`, filtered);
+    } else if (animalParam) {
+        const filtered = Object.values(animalGroups[animalParam] || {}).flat();
+        loadSearchPage(`Animal: ${animalParam}`, `Showing all ${animalParam} specimens`, filtered);
+    } else if (boneParam) {
+        const filtered = Object.values(animalGroups).flatMap(cats => cats[boneParam] || []);
+        loadSearchPage(`Bone: ${boneParam}`, `Showing all ${boneParam} specimens`, filtered);
+    } else {
+        loadSearchPage("Search", "Search through our specimen collection:");
+    }
+
+    // Keep the global exposure for debugging
+    window.loadGlbViewerFromSrc = loadGlbViewerFromSrc;
 });

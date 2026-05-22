@@ -169,6 +169,7 @@ body::before {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -229,7 +230,7 @@ body::before {
 .preview-iframe {
     width: 100%;
     height: 100%;
-    object-fit: contain;;
+    object-fit: contain;
     border: none;
     pointer-events: none;
     background: white;
@@ -265,7 +266,59 @@ body::before {
 .scan-viewer-section {
     display: flex;
     flex-direction: column;
-    height: calc(80vh);  
+    min-height: 80vh;
+}
+
+/* Metadata Table Styles */
+#metadata-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    width: 100%;
+    animation: fadeInUp 0.8s ease forwards;
+}
+
+.metadata-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: var(--shadow);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.metadata-table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.metadata-table tr:last-child td {
+    border-bottom: none;
+}
+
+.metadata-table tr:nth-child(even) {
+    background-color: rgba(212, 163, 115, 0.15);
+    /* var(--accent) at 15% */
+}
+
+.metadata-table .meta-key {
+    font-weight: 700;
+    color: var(--primary);
+    width: 30%;
+    vertical-align: top;
+    background-color: rgba(139, 94, 60, 0.05);
+    /* very light var(--primary) */
+    border-right: 2px solid var(--accent);
+}
+
+.metadata-table .meta-value {
+    color: var(--text);
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .metadata-table .meta-key {
+        width: 40%;
+    }
 }
 
 .model-title {
@@ -279,7 +332,8 @@ body::before {
 
 .model-viewer-container {
     position: relative;
-    height: calc(90vh); /* Adjusted to account for title and margins */
+    height: calc(90vh);
+    /* Adjusted to account for title and margins */
     margin-bottom: 2rem;
 }
 
@@ -310,7 +364,7 @@ body::before {
     .main-content {
         padding: 2rem 1rem;
         position: relative;
-        top: calc(20vh);        
+        top: calc(20vh);
     }
 
     .sidebar {
@@ -320,7 +374,7 @@ body::before {
         z-index: 1000;
         padding: 1rem 2rem .5rem .5rem;
         overflow: auto;
-        max-height: calc(30vh);        
+        max-height: calc(30vh);
     }
 
     .sidebar-header {
@@ -489,7 +543,7 @@ body::before {
     margin-top: 0.3rem;
 }
 
-.dropdown-submenu.active .submenu {
+.dropdown-submenu.active>.submenu {
     display: block;
     animation: fadeIn 0.2s ease;
 }
@@ -510,11 +564,33 @@ body::before {
     transform: translateX(5px);
 }
 
+/* Level 2 Submenu Indentation */
+.dropdown-submenu.level-2 .submenu {
+    margin-left: 1.5rem;
+    background: rgba(90, 54, 33, 0.9);
+}
+
+.nested-item {
+    font-size: 0.85rem !important;
+    padding: 0.4rem 0.8rem !important;
+}
+
+/* Active sidebar filter highlight — only one item should have this at a time */
+.active-filter {
+    color: var(--accent) !important;
+    font-weight: 700 !important;
+    border-left: 3px solid var(--accent);
+    padding-left: calc(0.8rem - 3px) !important;
+    background: rgba(212, 163, 115, 0.15) !important;
+    border-radius: 3px;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -588,3 +664,64 @@ body::before {
 }
 
 
+#controlContainer {
+    position: absolute !important;
+    top: 60px !important;
+    left: 10px !important;
+    width: auto !important;
+    height: auto !important;
+    z-index: 1000 !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+}
+
+
+#controls {
+    pointer-events: auto !important;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    display: flex !important;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+    opacity: 1 !important;
+    max-width: 180px;
+}
+
+#controls label {
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.scroll-to-table-btn {
+    margin-top: 4px;
+    width: 100%;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: white;
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-family: 'Lato', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.scroll-to-table-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+button.dim {
+    opacity: 0;
+    --min-hotspot-opacity: 1;
+}
+
+button.dim.visible {
+    opacity: 1;
+}
