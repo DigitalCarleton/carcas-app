@@ -334,7 +334,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         min-camera-orbit="-180deg 0deg auto"
                         max-camera-orbit="180deg 180deg auto"
                         max-field-of-view="90deg"
-                        field-of-view="60deg"
+                        field-of-view="45deg"
                         camera-controls
                         touch-action="pan-y"
                         environment-image="neutral"
